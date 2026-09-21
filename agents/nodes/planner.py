@@ -58,9 +58,12 @@ def planner_node(state: TeamState) -> TeamState:
         log.exception("planner failed")
         state["error"] = f"planner: {exc!r}"
         state["fallback_used"] = True
-        state["plan"] = state["plan"] or f"# Fallback plan\n\n- Solve: {task}\n- Test it\n"
+        state["plan"] = state.get("plan") or f"# Fallback plan\n\n- Solve: {task}\n- Test it\n"
         add_attribution(state, agent="planner", node="planner", error=str(exc))
-    return state
+    # Return only the fields we mutated — returning the entire state dict
+    # triggers LangGraph's "Can receive only one value per step" reducer
+    # error on read-only keys like ``task`` and ``session_id``.
+    return {k: state[k] for k in state.keys() if k in {"plan", "error", "fallback_used", "attribution"}}
 
 
 __all__ = ["planner_node"]

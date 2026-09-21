@@ -14,36 +14,58 @@ limitations under the License.
 """
 from __future__ import annotations
 
-from typing import Any, Dict, List, Optional, TypedDict
+from typing import Annotated, Any, Dict, List, Optional, TypedDict
+
+from langgraph.graph import add_messages
+
+
+def _last_wins(existing: Any, new: Any) -> Any:
+    """Reducer that keeps the most recent value.
+
+    LangGraph's default for ``Optional[str]``-shaped keys raises
+    ``InvalidUpdateError`` when two nodes write to the same key in one
+    step. Since every node in this graph already produces a final value
+    (rather than incrementally building one), last-write-wins is the
+    correct merge.
+    """
+    return new
+
+
+def _append_list(existing: Any, new: Any) -> Any:
+    """Reducer that appends to a list."""
+    return (list(existing) if existing else []) + (list(new) if new else [])
 
 
 class TeamState(TypedDict, total=False):
     """Shared state object that flows through every node in the team graph.
 
-    Using ``TypedDict`` (not Pydantic BaseModel) keeps the state fully
-    compatible with LangGraph's reducers and checkpointer machinery.
+    Every mutable key carries an explicit ``Annotated[...]`` reducer so
+    that LangGraph never raises ``InvalidUpdateError`` when two nodes
+    write to the same key in one step (planner → fallback sets the same
+    field that the happy path also sets, debate node appends to the
+    debate log, etc.).
     """
 
-    # ---- inputs ----
-    task: str
-    session_id: str
+    # ---- inputs (immutable per step) ----
+    task: Annotated[str, _last_wins]
+    session_id: Annotated[str, _last_wins]
 
-    # ---- intermediate artefacts ----
-    plan: Optional[str]
-    code_a: Optional[str]
-    code_b: Optional[str]
-    debate_log: List[Dict[str, Any]]
-    critic_review: Optional[str]
-    verification: Optional[Dict[str, Any]]
+    # ---- intermediate artefacts (last write wins) ----
+    plan: Annotated[Optional[str], _last_wins]
+    code_a: Annotated[Optional[str], _last_wins]
+    code_b: Annotated[Optional[str], _last_wins]
+    debate_log: Annotated[List[Dict[str, Any]], _append_list]
+    critic_review: Annotated[Optional[str], _last_wins]
+    verification: Annotated[Optional[Dict[str, Any]], _last_wins]
 
-    # ---- output ----
-    final: Optional[str]
+    # ---- output (last write wins) ----
+    final: Annotated[Optional[str], _last_wins]
 
     # ---- meta ----
-    attribution: Dict[str, Any]
-    error: Optional[str]
-    rounds: int
-    fallback_used: bool
+    attribution: Annotated[Dict[str, Any], _last_wins]
+    error: Annotated[Optional[str], _last_wins]
+    rounds: Annotated[int, _last_wins]
+    fallback_used: Annotated[bool, _last_wins]
 
 
 def add_attribution(state: TeamState, **record: Any) -> TeamState:

@@ -89,3 +89,31 @@ capabilities:
       - "Ollama-Mac"
       - "OpenAI-API"
     weight: 1.0
+
+  - capability: "辯論"
+    pools:
+      - "MiniMax-M3"
+      - "GLM-5.3"
+      - "DeepSeek-V4-Pro"
+      - "Google-Gemini"
+      - "OpenAI-API"
+      - "Claude-API"
+    weight: 1.0
+
+  - capability: "審查"
+    pools:
+      - "GLM-5.3"
+      - "DeepSeek-V4-Pro"
+      - "Google-Gemini"
+      - "OpenAI-API"
+      - "Claude-API"
+    weight: 1.1
+
+  - capability: "驗證"
+    pools:
+      - "GLM-5.3"
+      - "DeepSeek-V4-Pro"
+      - "Google-Gemini"
+      - "OpenAI-API"
+      - "Claude-API"
+    weight: 1.0
