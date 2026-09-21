@@ -4,6 +4,7 @@ The token is NOT stored here; only the chat-ID allowlist and metadata.
 This loader is best-effort: if the file is missing or malformed we
 return empty data and the bot falls back to whatever was set in env.
 """
+
 from __future__ import annotations
 
 import contextlib

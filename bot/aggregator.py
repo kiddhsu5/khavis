@@ -1,4 +1,5 @@
 """Render a ``DispatchReport`` as a single Telegram MarkdownV2 message."""
+
 from __future__ import annotations
 
 from .models import DispatchReport
@@ -7,9 +8,7 @@ from .telegram_api import TelegramAPI
 
 def format_report(report: DispatchReport) -> str:
     """Single-message MarkdownV2 view of per-backend outcomes + consensus."""
-    prompt = TelegramAPI.escape_markdown_v2(
-        _truncate(report.envelope.prompt, 200)
-    )
+    prompt = TelegramAPI.escape_markdown_v2(_truncate(report.envelope.prompt, 200))
     lines: list[str] = [f"🔁 /run: {prompt}", ""]
     for r in report.results:
         lines.append(TelegramAPI.format_result_block(r))

@@ -1,4 +1,5 @@
 """Fan-out orchestrator: run N backends in parallel, collect results."""
+
 from __future__ import annotations
 
 import asyncio

@@ -8,6 +8,7 @@ Two ways to run:
 Both modes start the same handler pipeline (handlers → dispatch → aggregator
 → Telegram sendMessage).
 """
+
 from __future__ import annotations
 
 import argparse
@@ -66,7 +67,8 @@ async def _populate_pools(deps: HandlerDeps) -> None:
         if pools_yaml.exists():
             reg.apply_pools_config(pools_yaml)
         deps.pools = [
-            (p.name, list(p.capabilities)) for p in reg.all()  # type: ignore[attr-defined]
+            (p.name, list(p.capabilities))
+            for p in reg.all()  # type: ignore[attr-defined]
         ]
     except Exception:  # noqa: BLE001
         deps.pools = []
@@ -138,9 +140,7 @@ def _build_handler(router: DispatchRouter, deps: HandlerDeps):
             return
         if not is_allowed(incoming.chat_id, deps.allowlist):
             with contextlib.suppress(Exception):
-                await deps.telegram.send_message(
-                    incoming.chat_id, "🚫 Not authorized."
-                )
+                await deps.telegram.send_message(incoming.chat_id, "🚫 Not authorized.")
             return
         if handler.__name__ == "handle_run":
             envelope = await handler(incoming, deps)
@@ -148,9 +148,7 @@ def _build_handler(router: DispatchRouter, deps: HandlerDeps):
                 return
             report = await router.dispatch(envelope)
             try:
-                await deps.telegram.send_message(
-                    incoming.chat_id, format_report(report)
-                )
+                await deps.telegram.send_message(incoming.chat_id, format_report(report))
             except Exception as exc:  # noqa: BLE001
                 print(f"[bot.main] send_message failed: {exc!r}", flush=True)
             return

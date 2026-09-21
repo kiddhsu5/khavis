@@ -1,4 +1,5 @@
 """Webhook route — single FastAPI route + secret-token validation."""
+
 from __future__ import annotations
 
 import hmac

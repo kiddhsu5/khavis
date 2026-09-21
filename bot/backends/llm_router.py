@@ -1,4 +1,5 @@
 """In-process backend that calls llm-router's own pools."""
+
 from __future__ import annotations
 
 import asyncio

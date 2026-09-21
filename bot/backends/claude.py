@@ -1,4 +1,5 @@
 """Subprocess wrapper for ``claude -p`` (Claude Code headless)."""
+
 from __future__ import annotations
 
 import asyncio

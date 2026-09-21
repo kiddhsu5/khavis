@@ -17,4 +17,5 @@ variable (set by the operator / docker-compose), with the historical
 allowlist and chat-id metadata loaded from a sidecar JSON file via
 ``pairing_loader``. Secrets never touch this file system.
 """
+
 from __future__ import annotations

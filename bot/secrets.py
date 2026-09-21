@@ -5,6 +5,7 @@ separate helper that reads the *historical* pairing JSON (which holds the
 allowlist of chat IDs and any cached metadata) but never holds the token
 itself in source-controlled files.
 """
+
 from __future__ import annotations
 
 import contextlib

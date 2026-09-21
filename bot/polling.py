@@ -3,6 +3,7 @@
 Same message-routing path as the webhook route; the only difference is
 the source. Both call ``handle_update()`` (in ``main.py``).
 """
+
 from __future__ import annotations
 
 import asyncio

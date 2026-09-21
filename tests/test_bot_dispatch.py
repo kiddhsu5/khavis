@@ -1,4 +1,5 @@
 """Unit tests for the dispatch aggregator and synthesis logic."""
+
 from __future__ import annotations
 
 from bot.aggregator import format_report

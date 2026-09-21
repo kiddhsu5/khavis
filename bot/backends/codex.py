@@ -1,4 +1,5 @@
 """Subprocess wrapper for ``codex exec`` (OpenAI Codex CLI)."""
+
 from __future__ import annotations
 
 import asyncio
@@ -98,9 +99,7 @@ class CodexBackend(Backend):
             latency_ms=latency_ms,
         )
 
-    async def _run_plain(
-        self, envelope: DispatchEnvelope, *, latency_ms: int = 0
-    ) -> BackendResult:
+    async def _run_plain(self, envelope: DispatchEnvelope, *, latency_ms: int = 0) -> BackendResult:
         args = [self._binary, "exec"]
         if self._model:
             args += ["-m", self._model]
@@ -113,9 +112,7 @@ class CodexBackend(Backend):
         )
         t0 = time.perf_counter()
         try:
-            stdout_b, stderr_b = await asyncio.wait_for(
-                proc.communicate(), timeout=self._timeout
-            )
+            stdout_b, stderr_b = await asyncio.wait_for(proc.communicate(), timeout=self._timeout)
         except TimeoutError:
             proc.kill()
             return BackendResult(

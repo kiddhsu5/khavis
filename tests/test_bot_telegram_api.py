@@ -1,4 +1,5 @@
 """Unit tests for Telegram MarkdownV2 escaping and result formatting."""
+
 from __future__ import annotations
 
 from bot.models import BackendResult

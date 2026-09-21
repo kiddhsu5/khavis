@@ -1,4 +1,5 @@
 """Parse incoming messages and route to the right handler."""
+
 from __future__ import annotations
 
 import shlex

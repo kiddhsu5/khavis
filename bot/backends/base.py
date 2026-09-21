@@ -1,4 +1,5 @@
 """Abstract ``Backend`` for the dispatch bot."""
+
 from __future__ import annotations
 
 import abc

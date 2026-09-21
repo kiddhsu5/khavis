@@ -4,6 +4,7 @@ A thin wrapper over ``httpx.AsyncClient`` covering the endpoints the bot
 needs: sendMessage, editMessageText, sendChatAction. We deliberately
 don't pull in the full ``python-telegram-bot`` runner — see plan for why.
 """
+
 from __future__ import annotations
 
 import asyncio

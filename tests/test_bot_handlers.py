@@ -1,4 +1,5 @@
 """Unit tests for the bot handlers (command parsing)."""
+
 from __future__ import annotations
 
 from bot.handlers import is_allowed, parse_run_command
@@ -41,9 +42,7 @@ class TestParseRun:
         assert prompt == "fix bug"
 
     def test_only_with_capability(self):
-        only, cap, prompt = parse_run_command(
-            "/run --only codex --capability=reasoning explain"
-        )
+        only, cap, prompt = parse_run_command("/run --only codex --capability=reasoning explain")
         assert only == ["codex"]
         assert cap == "reasoning"
         assert prompt == "explain"
@@ -54,18 +53,14 @@ class TestParseRun:
         assert prompt == ""
 
     def test_quoted_prompt_with_spaces(self):
-        only, cap, prompt = parse_run_command(
-            '/run --only codex "fix the flaky test"'
-        )
+        only, cap, prompt = parse_run_command('/run --only codex "fix the flaky test"')
         assert only == ["codex"]
         assert prompt == "fix the flaky test"
 
 
 class TestIncomingMessageModel:
     def test_command_flag(self):
-        m = IncomingMessage(
-            update_id=1, chat_id=10, user_id=20, text="/help", is_command=True
-        )
+        m = IncomingMessage(update_id=1, chat_id=10, user_id=20, text="/help", is_command=True)
         assert m.is_command is True
 
     def test_default_user_id_none(self):

@@ -1,4 +1,5 @@
 """Pydantic models exchanged across the bot layers."""
+
 from __future__ import annotations
 
 from typing import Literal
