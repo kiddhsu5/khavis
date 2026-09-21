@@ -20,6 +20,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - `Ollama` plugin now strips the legacy `ollama/` model prefix before posting to the native `/api/chat` endpoint — pools that shipped with `ollama/gemma4:e2b`-style configs no longer fail with HTTP 404 "model not found". Backward compatible: existing configs are auto-normalised on the wire.
+- `bot/main.py` now has an `if __name__ == "__main__":` guard so `python -m bot.main` actually invokes `main()` (previously the module imported and exited silently — only the console-script entrypoint worked).
+- `bot/telegram_api.py` drops `None`-valued kwargs before posting to Telegram. `parse_mode=null` was being rejected with HTTP 400 "unsupported parse_mode"; the correct way to opt out of Markdown parsing is to omit the field. Default `parse_mode` for `send_message` / `edit_message` is now `None` (plain text); MarkdownV2 formatting is reserved for the aggregator's per-result blocks.
+- `bot/handlers.py` switched the simple text replies (`/start`, `/help`, `/status`, `/pools`, `/run` empty-prompt hint, "🚫 Not authorized") to plain text — MarkdownV2 was being requested but the strings contained characters that MarkdownV2 would otherwise reject.
 
 ### Changed
 - `Ollama-Surface` pool default model switched from `ollama/gemma4:e2b` to `qwen2.5:1.5b` (suitable for i5/8 GB CPU-only hosts; lives on the Surface by default). Mac pool stays on `gemma4:e2b`.

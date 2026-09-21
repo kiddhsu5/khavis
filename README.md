@@ -78,6 +78,27 @@ A request flows through six layers — plugins, registry, capability router, orc
 
 ---
 
+## Telegram dispatch bot (optional)
+
+A Telegram bot lives in `bot/` that fans a single user prompt out to
+Claude Code + OpenAI Codex + this 12-pool gateway in parallel and
+returns a synthesized result. See [`docs/TELEGRAM_BOT.md`](docs/TELEGRAM_BOT.md)
+for the full operator guide. Quick start:
+
+```bash
+pip install -e ".[bot]"
+cp deploy/.env.example .env       # fill in BOT_TOKEN, ALLOWED_CHAT_IDS
+python -m bot.main --mode polling # local dev (no public endpoint needed)
+# OR
+docker compose -f deploy/docker-compose.yml up -d   # webhook + Caddy
+```
+
+Then from Telegram: `/start`, `/help`, `/status`, `/pools`, `/run <prompt>`.
+A single bot user gets zero-quota-interruption: when one backend is
+rate-limited or down, the other two still answer.
+
+---
+
 ## Quick start
 
 Three commands and you are routing.

@@ -268,6 +268,25 @@ The script is safe to re-run. It detects an existing Ollama Windows
 service and restarts it to pick up the new env var; otherwise it
 registers a startup scheduled task that runs `ollama serve`.
 
+### Telegram dispatch (optional)
+
+If you want to drive llm-router from a phone, see
+[`docs/TELEGRAM_BOT.md`](docs/TELEGRAM_BOT.md). Three commands:
+
+```bash
+pip install -e ".[bot]"                                     # bot extras
+cp deploy/.env.example .env                                # BOT_TOKEN, ALLOWED_CHAT_IDS
+python -m bot.main --mode polling                          # local dev
+# OR
+docker compose -f deploy/docker-compose.yml up -d          # webhook + Caddy
+```
+
+In Telegram: `/start`, `/help`, `/status`, `/pools`, `/run <prompt>`.
+A single user prompt is fanned out to Claude Code + OpenAI Codex +
+this 12-pool gateway in parallel; the bot returns each backend's
+result plus a synthesized consensus. Tokens come from `@BotFather`;
+allowlist chat IDs are read from `ALLOWED_CHAT_IDS` in `.env`.
+
 ### Recommended model pairing
 
 | Host | Recommended model | Why |
