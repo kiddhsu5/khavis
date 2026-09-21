@@ -23,7 +23,7 @@ from .base import ProviderPlugin
 try:
     from anthropic import Anthropic
 except Exception:  # pragma: no cover - import guard
-    Anthropic = None  # type: ignore[assignment]
+    Anthropic = None  # type: ignore[assignment,misc]
 
 
 DEFAULT_ENDPOINT = "https://api.anthropic.com"
@@ -60,7 +60,7 @@ class AnthropicPlugin(ProviderPlugin):
         )
         self._client = None
 
-    def _get_client(self):  # type: ignore[no-untyped-def]
+    def _get_client(self):
         if Anthropic is None:
             raise RuntimeError("anthropic package is not installed")
         if self._client is None:
@@ -104,7 +104,7 @@ class AnthropicPlugin(ProviderPlugin):
             create_kwargs["system"] = system_text
         create_kwargs.update(kwargs)
 
-        response = client.messages.create(**create_kwargs)  # type: ignore[arg-type]
+        response = client.messages.create(**create_kwargs)
         return self._normalize(response)
 
     def check_quota(self) -> dict[str, Any]:

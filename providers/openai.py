@@ -23,7 +23,7 @@ from .base import ProviderPlugin
 try:
     from openai import OpenAI
 except Exception:  # pragma: no cover - import guard
-    OpenAI = None  # type: ignore[assignment]
+    OpenAI = None  # type: ignore[assignment,misc]
 
 
 DEFAULT_ENDPOINT = "https://api.openai.com/v1"
@@ -61,7 +61,7 @@ class OpenAIPlugin(ProviderPlugin):
         )
         self._client = None
 
-    def _get_client(self):  # type: ignore[no-untyped-def]
+    def _get_client(self):
         if OpenAI is None:
             raise RuntimeError("openai package is not installed")
         if self._client is None:
@@ -76,7 +76,7 @@ class OpenAIPlugin(ProviderPlugin):
         model = kwargs.pop("model", self.model)
         response = client.chat.completions.create(
             model=model,
-            messages=messages,  # type: ignore[arg-type]
+            messages=messages,
             **kwargs,
         )
         return self._normalize(response)
@@ -113,7 +113,7 @@ class OpenAIPlugin(ProviderPlugin):
 
     def _normalize(self, response: Any) -> dict[str, Any]:
         try:
-            data = response.model_dump()  # type: ignore[attr-defined]
+            data = response.model_dump()
         except AttributeError:
             data = dict(response)
         if "choices" not in data:

@@ -120,7 +120,9 @@ class CapabilityRouter:
         return _weighted_choice(candidates, weights, rng or random)
 
 
-def _weighted_choice(items: list[Any], weights: Iterable[float], rng: random.Random) -> Any:
+def _weighted_choice(
+    items: list[Any], weights: Iterable[float], rng: random.Random | Any
+) -> Any:
     items = list(items)
     weights = [max(0.0, float(w)) for w in weights]
     total = sum(weights)

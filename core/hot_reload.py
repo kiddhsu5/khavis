@@ -22,20 +22,20 @@ from pathlib import Path
 # ``watchdog`` is an optional runtime dependency: tests / static imports
 # should still work even if it isn't installed.
 try:
-    from watchdog.events import FileSystemEventHandler  # type: ignore
-    from watchdog.observers import Observer  # type: ignore
+    from watchdog.events import FileSystemEventHandler
+    from watchdog.observers import Observer
 
     _HAVE_WATCHDOG = True
 except Exception:  # pragma: no cover - import guard
-    Observer = None  # type: ignore[assignment]
-    FileSystemEventHandler = object  # type: ignore[assignment, misc]
+    Observer = None
+    FileSystemEventHandler = object
     _HAVE_WATCHDOG = False
 
 
 DEFAULT_DEBOUNCE_SECONDS = 1.0
 
 
-class _DebouncedHandler(FileSystemEventHandler):  # type: ignore[misc]
+class _DebouncedHandler(FileSystemEventHandler):
     """Coalesce bursts of FS events into a single debounced callback."""
 
     def __init__(
@@ -99,7 +99,7 @@ class HotReloader:
         self.paths: list[Path] = [Path(p) for p in paths]
         self.callback = callback
         self.debounce_seconds = debounce_seconds
-        self._observer: Observer | None = None  # type: ignore[type-arg]
+        self._observer: Observer | None = None
 
     # ------------------------------------------------------------------
     # Lifecycle

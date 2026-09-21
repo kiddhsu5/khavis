@@ -21,9 +21,9 @@ from typing import Any
 from .base import ProviderPlugin
 
 try:
-    import google.generativeai as genai  # type: ignore
+    import google.generativeai as genai
 except Exception:  # pragma: no cover
-    genai = None  # type: ignore[assignment]
+    genai = None  # type: ignore[assignment,misc]
 
 
 DEFAULT_MODELS: list[str] = ["gemini-2.5-flash", "gemini-2.5-pro"]
@@ -75,9 +75,9 @@ class GeminiPlugin(ProviderPlugin):
         if not self.api_key:
             raise RuntimeError("GOOGLE_API_KEY not configured")
 
-        genai.configure(api_key=self.api_key)  # type: ignore[attr-defined]
+        genai.configure(api_key=self.api_key)
         target_model = kwargs.pop("model", self.model)
-        gen_model = genai.GenerativeModel(target_model)  # type: ignore[attr-defined]
+        gen_model = genai.GenerativeModel(target_model)
 
         # Convert OpenAI-style messages to Gemini's contents format.
         system_parts = [m["content"] for m in messages if m.get("role") == "system"]

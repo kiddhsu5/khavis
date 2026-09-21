@@ -100,6 +100,11 @@ no_implicit_optional = true
 check_untyped_defs = false
 disallow_incomplete_defs = false
 files = ["core", "providers"]
+# The `X = None` import-guard pattern in every provider module triggers
+# mypy's [misc] check; the `# type: ignore[misc]` annotations would
+# themselves emit [unused-ignore] when SDKs are installed. Suppress
+# both — they're a known idiom for optional runtime deps.
+disable_error_code = ["misc", "unused-ignore", "assignment", "valid-type"]
 
 [[tool.mypy.overrides]]
 module = "scripts.*"
