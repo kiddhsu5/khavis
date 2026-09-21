@@ -21,6 +21,7 @@ from __future__ import annotations
 
 import logging
 import sys
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
@@ -54,21 +55,72 @@ class _PoolRunnable:
     pool: ProviderPlugin
     role: Role
     fallback_chain: List[str]
+    # Captured at construction time so the runnable always sees the
+    # factory that built it, even if the module-level singleton is
+    # later swapped (e.g. by tests).
+    factory: Optional[Any] = None
+
+    def _resolve(self, name: str) -> Any:
+        if self.factory is not None:
+            return self.factory._resolve(name)
+        return get_agent_factory()._resolve(name)
 
     def invoke(self, messages: List[Dict[str, str]], **kwargs: Any) -> str:
+        # Try the primary pool + every fallback in parallel; first success wins.
+        # This makes ``agents.run_team`` dramatically faster when the
+        # primary pool is rate-limited or has bad creds — instead of
+        # waiting for the primary to time out then sequentially probing
+        # each fallback, all pools race. Sequential behaviour was the
+        # root cause of multi-minute ``run_team`` calls when only some
+        # pools were healthy.
         attempt = [self.pool.name] + list(self.fallback_chain)
         last_err: Optional[Exception] = None
-        for pool_name in attempt:
-            plugin = _AGENT_FACTORY._resolve(pool_name) or self.pool
+
+        def _try(name: str) -> tuple[str, Optional[str], Optional[Exception]]:
+            plugin = self._resolve(name) or self.pool
             try:
                 response = plugin.chat(messages, **kwargs)
-                content = _extract_content(response)
-                log.debug("pool %s answered (role=%s)", pool_name, self.role.name)
-                return content
+                return name, _extract_content(response), None
             except Exception as exc:  # pragma: no cover - defensive
-                last_err = exc
-                log.warning("pool %s failed for role %s: %r", pool_name, self.role.name, exc)
-                continue
+                return name, None, exc
+
+        # Cap parallelism at the number of attempts so we never spawn more
+        # workers than pools. In practice this is a small pool set.
+        executor = ThreadPoolExecutor(
+            max_workers=max(1, len(attempt)),
+            thread_name_prefix=f"agent-{self.role.name}",
+        )
+        futures = {executor.submit(_try, n): n for n in attempt}
+        try:
+            for f in as_completed(futures, timeout=None):
+                _name, content, err = f.result()
+                if content is not None:
+                    # First success wins. Cancel pending fallbacks (this
+                    # only stops ones that haven't started yet — a slow
+                    # primary that's already inside ``chat`` will keep
+                    # running until its own timeout / error, but
+                    # ``shutdown(wait=False)`` below lets us return
+                    # without joining on those threads).
+                    for remaining in futures:
+                        if remaining is not f:
+                            remaining.cancel()
+                    log.debug("pool %s answered (role=%s)", _name, self.role.name)
+                    return content
+                if err is not None:
+                    last_err = err
+                    log.warning(
+                        "pool %s failed for role %s: %r", _name, self.role.name, err
+                    )
+        finally:
+            # wait=False so the primary that timed out doesn't block the
+            # caller's return. Threads that are already blocked in
+            # ``chat()`` will keep running until they time out on their
+            # own; we just don't join on them.
+            executor.shutdown(wait=False)
+            for f in futures:
+                if not f.done():
+                    f.cancel()
+
         raise RuntimeError(
             f"all pools failed for role {self.role.name!r}: {last_err!r}"
         )
@@ -169,7 +221,9 @@ class AgentFactory:
             n for n in self._fallback_for(role.capability_required, exclude=primary.name)
             if n != primary.name
         ]
-        runnable = _PoolRunnable(pool=primary, role=role, fallback_chain=fallbacks)
+        runnable = _PoolRunnable(
+            pool=primary, role=role, fallback_chain=fallbacks, factory=self
+        )
         self._cache[cache_key] = runnable
         log.info(
             "agent created role=%s pool=%s fallbacks=%s",
