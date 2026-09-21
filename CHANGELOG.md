@@ -19,7 +19,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `Ollama` plugin now strips the legacy `ollama/` model prefix before posting to the native `/api/chat` endpoint — pools that shipped with `ollama/gemma4:e2b`-style configs no longer fail with HTTP 404 "model not found". Backward compatible: existing configs are auto-normalised on the wire.
 
 ### Changed
-- `Ollama-Surface` pool default model switched from `ollama/gemma4:e2b` to `qwen2.5-coder:1.5b` (suitable for i5/8 GB CPU-only hosts). Mac pool stays on `gemma4:e2b`.
+- `Ollama-Surface` pool default model switched from `ollama/gemma4:e2b` to `qwen2.5:1.5b` (suitable for i5/8 GB CPU-only hosts; lives on the Surface by default). Mac pool stays on `gemma4:e2b`.
+- `Ollama` plugin's `_plugin_instances` now includes the per-pool `model` field, so the registry instantiates each pool with the correct model from `config/pools.yaml` instead of the hard-coded default.
 
 ### Removed
 - ChatGPT-GO plugin (`providers/chatgpt.py`) — ChatGPT GO subscription does not include API access. See `docs/PLUGIN_DEVELOPMENT.md` to re-add if you have OpenAI Platform credentials.

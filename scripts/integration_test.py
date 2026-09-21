@@ -161,13 +161,13 @@ def _build_pools() -> List[PoolSpec]:
         PoolSpec(
             name="Ollama-Mac",
             env_key=None,
-            factory=lambda: OllamaPlugin(name="Ollama-Mac"),
+            factory=lambda: OllamaPlugin(name="Ollama-Mac", model="gemma4:e2b"),
             requires_api_key=False,
         ),
         PoolSpec(
             name="Ollama-Surface",
             env_key="SURFACE_IP",
-            factory=lambda: OllamaPlugin(name="Ollama-Surface"),
+            factory=lambda: OllamaPlugin(name="Ollama-Surface", model="qwen2.5:1.5b"),
             requires_api_key=False,
         ),
     ]

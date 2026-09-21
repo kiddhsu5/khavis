@@ -56,14 +56,17 @@ class OllamaPlugin(ProviderPlugin):
 
     # The registry iterates this list and instantiates one pool per entry.
     # Each dict is passed as kwargs to ``OllamaPlugin.__init__``.
+    # The ``model`` field mirrors ``config/pools.yaml`` — keep both in sync.
     _plugin_instances = [
         {
             "name": "Ollama-Mac",
             "base_url": "http://localhost:11434",
+            "model": "gemma4:e2b",
         },
         {
             "name": "Ollama-Surface",
             "base_url": "http://${SURFACE_IP}:11434",
+            "model": "qwen2.5:1.5b",
             "metadata": {"region": "remote", "tier": "self-hosted"},
         },
     ]

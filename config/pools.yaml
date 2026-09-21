@@ -86,5 +86,5 @@ pools:
   - name: "Ollama-Surface"
     provider_id: "ollama"
     endpoint: "http://${SURFACE_IP}:11434"
-    model: "qwen2.5-coder:1.5b"
+    model: "qwen2.5:1.5b"
     env_key: null

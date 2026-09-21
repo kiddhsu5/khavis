@@ -30,7 +30,7 @@ PULL_ONLY=0
 
 # Per-target model list — bump here when adding/changing the local default.
 MAC_REQUIRED_MODELS=("gemma4:e2b")
-SURFACE_REQUIRED_MODELS=("qwen2.5-coder:1.5b")
+SURFACE_REQUIRED_MODELS=("qwen2.5:1.5b")
 
 # ---- arg parsing ------------------------------------------------------
 while [[ $# -gt 0 ]]; do

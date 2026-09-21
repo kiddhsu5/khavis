@@ -226,7 +226,7 @@ curl -fsSL https://ollama.com/install.sh | sh
 
 # 2. Pull the model that fits the host (see table below).
 ollama pull gemma4:e2b            # Mac
-ollama pull qwen2.5-coder:1.5b    # Surface (CPU-only)
+ollama pull qwen2.5:1.5b        # Surface (CPU-only)
 
 # 3. Verify the daemon is serving.
 curl http://localhost:11434/api/tags
@@ -249,7 +249,7 @@ LAN).
 | Host | Recommended model | Why |
 |------|-------------------|-----|
 | Mac (M-series, 8 GB+, Metal) | `gemma4:e2b` (5.1 B, ~7 GB) | Multimodal (vision / audio / tools), runs comfortably on Apple GPUs. |
-| Surface Pro 7+ (i5 / 8 GB, CPU only) | `qwen2.5-coder:1.5b` (~1 GB) | Code-specialised, fits in 8 GB system RAM, runs on CPU without OOM. |
+| Surface Pro 7+ (i5 / 8 GB, CPU only) | `qwen2.5:1.5b` (~1 GB) | General-purpose 1.5 B, fits in 8 GB system RAM, runs on CPU without OOM. |
 
 If you want a different model on either pool, override it in
 `config/pools.yaml` under the corresponding pool's `model:` field.
