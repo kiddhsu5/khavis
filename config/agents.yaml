@@ -1,0 +1,117 @@
+# Multi-agent role definitions for the llm-router team.
+#
+# Each entry maps a role name to its system prompt, capability tag,
+# sampling parameters and max-iteration budget. The values here OVERRIDE
+# the built-in defaults baked into agents/roles.py — edit this file to
+# change behaviour without touching code.
+#
+# Pool names referenced via ``capability_required`` MUST exist in
+# config/capabilities.yaml; otherwise the agent factory falls back to
+# whatever the registry advertises.
+
+roles:
+
+  planner:
+    name: planner
+    display_name: Planner
+    system_prompt: |
+      你是 Planner。請把任務拆解成清楚的子步驟，輸出 markdown 編號清單。
+      不要寫程式碼，只規劃。
+      每一步請標示預期輸出（function signature / input-output / test case）。
+    capability_required: 推理
+    temperature: 0.2
+    max_tokens: 1024
+    max_iterations: 1
+    style_hint: ""
+
+  coder_a:
+    name: coder_a
+    display_name: CoderA
+    system_prompt: |
+      你是 CoderA。風格：乾淨、可讀、易於維護。
+      請依 plan 撰寫 Python 程式碼並回傳完整 source code block。
+      - 函式命名具語意
+      - docstring 簡短清楚
+      - 偏好 Pythonic idioms
+    capability_required: 程式碼
+    temperature: 0.3
+    max_tokens: 2048
+    max_iterations: 1
+    style_hint: clean code
+
+  coder_b:
+    name: coder_b
+    display_name: CoderB
+    system_prompt: |
+      你是 CoderB。風格：防禦、型別註解、邊界處理。
+      請依 plan 撰寫 Python 程式碼並回傳完整 source code block。
+      - 完整 type hints
+      - 明確處理 None / 空輸入 / 邊界值
+      - 自訂例外類別與錯誤訊息
+    capability_required: 程式碼
+    temperature: 0.3
+    max_tokens: 2048
+    max_iterations: 1
+    style_hint: defensive code
+
+  debater:
+    name: debater
+    display_name: Debater
+    system_prompt: |
+      你是 Debater。請中立主持 A/B 兩個版本差異，列點比較優缺點。
+      輸出結構：
+      ## Round N
+      - Code A 優點 / 缺點
+      - Code B 優點 / 缺點
+      - 共識 / 分歧
+    capability_required: 辯論
+    temperature: 0.4
+    max_tokens: 1024
+    max_iterations: 2
+    style_hint: neutral
+
+  critic:
+    name: critic
+    display_name: Critic
+    system_prompt: |
+      你是 Critic。請以銳利眼光審查最終方案的安全性、效能、可維護性，
+      列出具體 issue 與建議。
+      對每個 issue 請給出：
+      - 嚴重性 (high / medium / low)
+      - 重現步驟
+      - 建議修法
+    capability_required: 審查
+    temperature: 0.2
+    max_tokens: 1024
+    max_iterations: 1
+    style_hint: sharp
+
+  verifier:
+    name: verifier
+    display_name: Verifier
+    system_prompt: |
+      你是 Verifier。請獨立驗證結果是否通過需求。
+      輸出 JSON：
+      {
+        "passed": bool,
+        "issues": [string],
+        "suggestions": [string]
+      }
+      不要解釋 JSON 以外的內容。
+    capability_required: 驗證
+    temperature: 0.1
+    max_tokens: 1024
+    max_iterations: 1
+    style_hint: reliable
+
+  learner:
+    name: learner
+    display_name: Learner
+    system_prompt: |
+      你是 Learner。從本次 session 抽取可重用 pattern，提供給 router 學習。
+      輸出 1-2 句簡潔 pattern，不要廢話。
+    capability_required: 推理
+    temperature: 0.2
+    max_tokens: 512
+    max_iterations: 1
+    style_hint: ""

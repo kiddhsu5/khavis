@@ -1,0 +1,90 @@
+# Pool configuration for the llm-router.
+#
+# This file is loaded by scripts/start.sh to drive health-check prints
+# and to give operators a single place to override per-pool defaults
+# (model name, endpoint override, capability tweaks, ...).
+#
+# Adding a new pool typically only requires:
+#   1. drop a new plugin into providers/
+#   2. add an entry here referencing its ``name`` attribute
+# No Python code changes are needed.
+
+pools:
+  - name: "MiniMax-M3"
+    provider_id: "MiniMax"
+    endpoint: "https://api.MiniMax.chat/v1"
+    model: "MiniMax-M3"
+    env_key: "MiniMax_API_KEY"
+
+  - name: "GLM-5.3"
+    provider_id: "glm"
+    endpoint: "https://open.bigmodel.cn/api/paas/v4"
+    model: "glm-5.3"
+    env_key: "ZHIPUAI_API_KEY"
+
+  - name: "Google-Gemini"
+    provider_id: "gemini"
+    endpoint: "https://generativelanguage.googleapis.com"
+    models:
+      - "gemini-2.5-flash"
+      - "gemini-2.5-pro"
+    env_key: "GOOGLE_API_KEY"
+
+  - name: "NVIDIA-Cloud"
+    provider_id: "nvidia"
+    endpoint: "https://integrate.api.nvidia.com/v1"
+    env_key: "NVIDIA_API_KEY"
+
+  - name: "DeepSeek-V4-Pro"
+    provider_id: "volcano"
+    endpoint: "https://ark.cn-beijing.volces.com/api/v3"
+    model: "deepseek-v4-pro"
+    env_key: "BYTEDANCE_API_KEY"
+
+  - name: "DeepSeek-V4.1-Flash"
+    provider_id: "volcano"
+    endpoint: "https://ark.cn-beijing.volces.com/api/v3"
+    model: "deepseek-v4.1-flash"
+    env_key: "BYTEDANCE_API_KEY"
+
+  - name: "GLM-5.3-Flash"
+    provider_id: "volcano"
+    endpoint: "https://ark.cn-beijing.volces.com/api/v3"
+    model: "glm-5.3-flash"
+    env_key: "BYTEDANCE_API_KEY"
+
+  - name: "OpenRouter-Free"
+    provider_id: "openrouter"
+    endpoint: "https://openrouter.ai/api/v1"
+    model: "openai/auto"
+    env_key: "OPENROUTER_API_KEY"
+
+  - name: "OpenAI-API"
+    provider_id: "openai"
+    endpoint: "https://api.openai.com/v1"
+    model: "gpt-5-mini"
+    env_key: "OPENAI_API_KEY"
+    region: us
+    tier: platform_api
+    notes: "Requires OpenAI Platform API key (separate from ChatGPT subscription). Sign up at https://platform.openai.com"
+
+  - name: "Claude-API"
+    provider_id: "claude"
+    endpoint: "https://api.anthropic.com"
+    model: "claude-haiku-4-5-20251001"
+    env_key: "ANTHROPIC_API_KEY"
+    region: us
+    tier: platform_api
+    notes: "Requires Anthropic API key (separate from Claude Code/Cursor subscription). Sign up at https://console.anthropic.com"
+
+  - name: "Ollama-Mac"
+    provider_id: "ollama"
+    endpoint: "http://localhost:11434"
+    model: "gemma4:e2b"
+    env_key: null
+
+  - name: "Ollama-Surface"
+    provider_id: "ollama"
+    endpoint: "http://${SURFACE_IP}:11434"
+    model: "qwen2.5-coder:1.5b"
+    env_key: null

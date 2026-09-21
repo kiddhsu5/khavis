@@ -1,0 +1,209 @@
+"""Agent factory: bridges :class:`Role` objects to runnable LLM agents.
+
+The factory consults the existing :class:`core.capability_router.CapabilityRouter`
+to pick a pool for each role, then wraps that pool in a thin LangChain-
+compatible runnable. Agent instances are cached by ``(role_name, pool_name)``
+so repeated invocations don't re-instantiate expensive clients.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+"""
+from __future__ import annotations
+
+import logging
+import sys
+from dataclasses import dataclass
+from pathlib import Path
+from typing import Any, Dict, List, Optional, Tuple
+
+# Ensure project root is importable regardless of where this module is loaded.
+_PROJECT_ROOT = Path(__file__).resolve().parent.parent
+if str(_PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(_PROJECT_ROOT))
+
+from core.capability_router import CapabilityRouter  # noqa: E402
+from core.registry import PluginRegistry  # noqa: E402
+from providers.base import ProviderPlugin  # noqa: E402
+
+from .roles import Role  # noqa: E402
+
+log = logging.getLogger(__name__)
+
+
+# ----------------------------------------------------------------------
+# Thin runnable wrapper around a ProviderPlugin
+# ----------------------------------------------------------------------
+@dataclass
+class _PoolRunnable:
+    """A LangChain-style runnable that proxies ``invoke`` to a pool.
+
+    Implements the minimal interface that nodes need: ``invoke(messages)``
+    returning a string answer. Streaming is best-effort — we delegate to
+    the pool's ``chat`` method which already returns the full reply.
+    """
+
+    pool: ProviderPlugin
+    role: Role
+    fallback_chain: List[str]
+
+    def invoke(self, messages: List[Dict[str, str]], **kwargs: Any) -> str:
+        attempt = [self.pool.name] + list(self.fallback_chain)
+        last_err: Optional[Exception] = None
+        for pool_name in attempt:
+            plugin = _AGENT_FACTORY._resolve(pool_name) or self.pool
+            try:
+                response = plugin.chat(messages, **kwargs)
+                content = _extract_content(response)
+                log.debug("pool %s answered (role=%s)", pool_name, self.role.name)
+                return content
+            except Exception as exc:  # pragma: no cover - defensive
+                last_err = exc
+                log.warning("pool %s failed for role %s: %r", pool_name, self.role.name, exc)
+                continue
+        raise RuntimeError(
+            f"all pools failed for role {self.role.name!r}: {last_err!r}"
+        )
+
+    # LangChain compatibility shims.
+    def __call__(self, messages: List[Dict[str, str]], **kwargs: Any) -> str:  # type: ignore[override]
+        return self.invoke(messages, **kwargs)
+
+
+def _extract_content(response: Dict[str, Any]) -> str:
+    """Normalise a provider response to a plain string."""
+    if not isinstance(response, dict):
+        return str(response)
+    choices = response.get("choices") or []
+    if choices:
+        first = choices[0]
+        if isinstance(first, dict):
+            msg = first.get("message") or {}
+            if isinstance(msg, dict):
+                return str(msg.get("content", ""))
+        return str(first.get("text", ""))
+    if "content" in response:
+        return str(response["content"])
+    return str(response)
+
+
+# ----------------------------------------------------------------------
+# AgentFactory
+# ----------------------------------------------------------------------
+class AgentFactory:
+    """Materialises :class:`Role` -> runnable.
+
+    The factory owns the registry + capability router instances so multiple
+    agents share one plugin catalogue.
+    """
+
+    def __init__(
+        self,
+        registry: Optional[PluginRegistry] = None,
+        router: Optional[CapabilityRouter] = None,
+        config_dir: Optional[Path] = None,
+    ) -> None:
+        root = Path(config_dir) if config_dir else _PROJECT_ROOT
+        self.registry: PluginRegistry = registry or PluginRegistry(root).discover()
+        self.router: CapabilityRouter = router or CapabilityRouter(self.registry)
+        caps_path = root / "config" / "capabilities.yaml"
+        if caps_path.exists():
+            self.router.load_capabilities(caps_path)
+        self._cache: Dict[Tuple[str, str], _PoolRunnable] = {}
+
+    # ------------------------------------------------------------------
+    # Lookup
+    # ------------------------------------------------------------------
+    def _resolve(self, pool_name: str) -> Optional[ProviderPlugin]:
+        return self.registry.get(pool_name)
+
+    def _fallback_for(self, capability: str, exclude: Optional[str] = None) -> List[str]:
+        candidates = self.router.candidates(capability)
+        names = [p.name for p in candidates]
+        if exclude and exclude in names:
+            names.remove(exclude)
+        return names
+
+    def select_pool(self, role: Role) -> Optional[ProviderPlugin]:
+        """Pick a single pool for ``role`` (public for diagnostics)."""
+        return self.router.select(role.capability_required)
+
+    # ------------------------------------------------------------------
+    # Creation
+    # ------------------------------------------------------------------
+    def create_agent(
+        self,
+        role: Role,
+        *,
+        pool_name: Optional[str] = None,
+    ) -> _PoolRunnable:
+        """Return a runnable for ``role``.
+
+        ``pool_name`` overrides the capability router when the caller wants
+        to pin a specific pool (e.g. for cross-validation).
+        """
+        primary = (
+            self._resolve(pool_name)
+            if pool_name
+            else self.select_pool(role)
+        )
+        if primary is None:
+            raise RuntimeError(
+                f"no pool available for capability {role.capability_required!r}"
+            )
+
+        cache_key = (role.name, primary.name)
+        cached = self._cache.get(cache_key)
+        if cached is not None:
+            return cached
+
+        fallbacks = [
+            n for n in self._fallback_for(role.capability_required, exclude=primary.name)
+            if n != primary.name
+        ]
+        runnable = _PoolRunnable(pool=primary, role=role, fallback_chain=fallbacks)
+        self._cache[cache_key] = runnable
+        log.info(
+            "agent created role=%s pool=%s fallbacks=%s",
+            role.name,
+            primary.name,
+            fallbacks,
+        )
+        return runnable
+
+    def reset_cache(self) -> None:
+        """Clear the agent cache (e.g. after hot-reload)."""
+        self._cache.clear()
+
+
+# Singleton accessor for the simple case where there is only one factory
+# per process. Node functions can import this lazily.
+_AGENT_FACTORY: Optional[AgentFactory] = None
+
+
+def get_agent_factory() -> AgentFactory:
+    global _AGENT_FACTORY
+    if _AGENT_FACTORY is None:
+        _AGENT_FACTORY = AgentFactory()
+    return _AGENT_FACTORY
+
+
+def set_agent_factory(factory: AgentFactory) -> None:
+    """Override the singleton (used by tests)."""
+    global _AGENT_FACTORY
+    _AGENT_FACTORY = factory
+
+
+__all__ = [
+    "AgentFactory",
+    "get_agent_factory",
+    "set_agent_factory",
+]
