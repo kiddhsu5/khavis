@@ -14,6 +14,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `anthropic>=0.40.0` to runtime dependencies (needed by the Claude-API plugin).
 - BYOK documentation in README and INSTALLATION — clear guidance on which pools require a separate billing account.
 - `scripts/setup_ollama.sh` — one-shot setup for Mac + Surface Ollama hosts; validates endpoint reachability, pulls required models if missing, smoke-tests each pool, and writes `SURFACE_IP` to `.env` for the Surface pool. Idempotent.
+- `bot/` package — Telegram dispatch bot (FastAPI + long-polling) that fans out a single user prompt to Claude Code + Codex + llm-router's own 12-pool gateway in parallel, aggregates results with attribution, and replies with a synthesized consensus. New `bot` optional-dependency group: `fastapi`, `uvicorn`, `httpx`, `python-telegram-bot`.
+- `deploy/` directory — Docker + Caddyfile + Aliyun / Tencent Cloud deploy scripts; full operator guide in `deploy/README.md`. Health endpoint exposed at `/healthz`.
+- `docs/TELEGRAM_BOT.md` — operator-facing reference for the dispatch bot (commands, env vars, allowlist, deploy).
 
 ### Fixed
 - `Ollama` plugin now strips the legacy `ollama/` model prefix before posting to the native `/api/chat` endpoint — pools that shipped with `ollama/gemma4:e2b`-style configs no longer fail with HTTP 404 "model not found". Backward compatible: existing configs are auto-normalised on the wire.

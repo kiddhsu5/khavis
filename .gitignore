@@ -52,6 +52,8 @@ htmlcov/
 .env
 .env.*
 !.env.example
+deploy/.env
+deploy/certs/*.pem
 
 # Project runtime data
 memory/episodic.sqlite

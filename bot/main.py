@@ -1,0 +1,205 @@
+"""FastAPI app: webhook + lifespan + ``llm-router-bot`` entry point.
+
+Two ways to run:
+
+1. ``uvicorn bot.main:app --host 0.0.0.0 --port 8080``  — webhook mode
+2. ``python -m bot.main --mode polling``                — long-poll mode
+
+Both modes start the same handler pipeline (handlers → dispatch → aggregator
+→ Telegram sendMessage).
+"""
+from __future__ import annotations
+
+import argparse
+import asyncio
+import contextlib
+import os
+from contextlib import asynccontextmanager
+from typing import Any
+
+from fastapi import FastAPI, Request
+
+from .aggregator import format_report
+from .backends import ClaudeBackend, CodexBackend, LLMRouterBackend
+from .dispatch import DispatchRouter
+from .handlers import HandlerDeps, is_allowed, route_command
+from .models import BackendName, IncomingMessage
+from .pairing_loader import load_pairing
+from .polling import long_poll_loop
+from .secrets import BotSecrets
+from .telegram_api import TelegramAPI
+
+
+# ---------------------------------------------------------------------------
+# Build the dispatch + telegram service. Kept module-level so uvicorn's
+# import path ``bot.main:app`` works without extra ceremony.
+# ---------------------------------------------------------------------------
+def _build_router_and_deps(secrets: BotSecrets) -> tuple[DispatchRouter, HandlerDeps]:
+    """Wire concrete backends + handler deps."""
+    backends: dict[BackendName, Any] = {
+        "claude": ClaudeBackend(timeout_s=secrets.backend_timeout_s),
+        "codex": CodexBackend(timeout_s=secrets.backend_timeout_s),
+        "llm-router": LLMRouterBackend(),
+    }
+    router = DispatchRouter(backends)
+
+    telegram = TelegramAPI(secrets.bot_token)
+    pairing = load_pairing()
+    allowed = sorted(set(secrets.allowed_chat_ids) | set(pairing.allow_from))
+
+    deps = HandlerDeps(
+        telegram=telegram,
+        allowlist=allowed,
+        backends={k: v for k, v in backends.items()},  # type: ignore[dict-item]
+        pools=[],  # populated lazily via ``_populate_pools()`` in lifespan
+    )
+    return router, deps
+
+
+async def _populate_pools(deps: HandlerDeps) -> None:
+    """Best-effort: load llm-router pools so ``/pools`` can answer."""
+    try:
+        from core.registry import PluginRegistry  # noqa: PLC0415
+
+        reg = PluginRegistry().discover()
+        pools_yaml = reg.project_root / "config" / "pools.yaml"
+        if pools_yaml.exists():
+            reg.apply_pools_config(pools_yaml)
+        deps.pools = [
+            (p.name, list(p.capabilities)) for p in reg.all()  # type: ignore[attr-defined]
+        ]
+    except Exception:  # noqa: BLE001
+        deps.pools = []
+
+
+def _make_app(secrets: BotSecrets) -> FastAPI:
+    """Build the FastAPI app bound to the given secrets."""
+    router, deps = _build_router_and_deps(secrets)
+    state: dict[str, Any] = {"router": router, "deps": deps, "polling_stop": None}
+
+    @asynccontextmanager
+    async def lifespan(app: FastAPI):
+        # Initial population of pool list for ``/pools`` command.
+        await _populate_pools(deps)
+        # Optionally start the polling fallback.
+        if os.environ.get("BOT_MODE", "webhook").lower() == "polling":
+            stop = asyncio.Event()
+            state["polling_stop"] = stop
+            app.state.polling_task = asyncio.create_task(
+                long_poll_loop(secrets, _build_handler(router, deps), stop=stop)
+            )
+        try:
+            yield
+        finally:
+            stop = state.get("polling_stop")
+            if stop is not None:
+                stop.set()
+            task = getattr(app.state, "polling_task", None)
+            if task is not None:
+                task.cancel()
+                with contextlib.suppress(asyncio.CancelledError, Exception):
+                    await task
+            await deps.telegram.aclose()
+
+    app = FastAPI(title="llm-router dispatch bot", lifespan=lifespan)
+
+    @app.get("/healthz")
+    async def healthz() -> dict[str, Any]:
+        h = await router.health_all()
+        ok = all(v["ok"] == "yes" for v in h.values())
+        return {"status": "ok" if ok else "degraded", "backends": h}
+
+    @app.post("/webhook")
+    async def webhook(request: Request) -> dict[str, bool]:
+        from .webhook import webhook_route  # local import — keeps startup fast
+
+        return await webhook_route(request, secrets, _build_handler(router, deps))
+
+    @app.post("/webhook/{path_token}")
+    async def webhook_with_token(path_token: str, request: Request) -> dict[str, bool]:
+        # Reject any URL with a random path suffix unless the secret matches.
+        from .webhook import webhook_route  # noqa: PLC0415
+
+        if path_token != secrets.webhook_secret:
+            from fastapi import HTTPException
+
+            raise HTTPException(status_code=404, detail="not found")
+        return await webhook_route(request, secrets, _build_handler(router, deps))
+
+    return app
+
+
+def _build_handler(router: DispatchRouter, deps: HandlerDeps):
+    """Closure that routes an IncomingMessage to its handler."""
+
+    async def handle(incoming: IncomingMessage) -> None:
+        handler = route_command(incoming.text or "")
+        if handler is None:
+            return
+        if not is_allowed(incoming.chat_id, deps.allowlist):
+            with contextlib.suppress(Exception):
+                await deps.telegram.send_message(
+                    incoming.chat_id, "🚫 Not authorized."
+                )
+            return
+        if handler.__name__ == "handle_run":
+            envelope = await handler(incoming, deps)
+            if envelope is None or not envelope.prompt:
+                return
+            report = await router.dispatch(envelope)
+            try:
+                await deps.telegram.send_message(
+                    incoming.chat_id, format_report(report)
+                )
+            except Exception as exc:  # noqa: BLE001
+                print(f"[bot.main] send_message failed: {exc!r}", flush=True)
+            return
+        await handler(incoming, deps)
+
+    return handle
+
+
+# Build secrets once at module load (uvicorn picks this up immediately).
+_SECRETS = BotSecrets.from_env()
+app = _make_app(_SECRETS)
+
+
+# ---------------------------------------------------------------------------
+# Console-script entry point: ``llm-router-bot``.
+# ---------------------------------------------------------------------------
+def main() -> None:
+    parser = argparse.ArgumentParser(prog="llm-router-bot")
+    parser.add_argument(
+        "--mode",
+        choices=("webhook", "polling"),
+        default=os.environ.get("BOT_MODE", "webhook"),
+        help="Listen mode. webhook serves /webhook on $PORT; polling runs a getUpdates loop.",
+    )
+    parser.add_argument("--host", default=os.environ.get("BOT_HOST", "0.0.0.0"))
+    parser.add_argument("--port", type=int, default=int(os.environ.get("BOT_PORT", "8080")))
+    args = parser.parse_args()
+    if args.mode == "polling":
+        os.environ["BOT_MODE"] = "polling"
+        asyncio.run(_run_polling_only())
+        return
+    # webhook mode: hand off to uvicorn
+    import uvicorn  # noqa: PLC0415 - lazy
+
+    uvicorn.run("bot.main:app", host=args.host, port=args.port, log_level="info")
+
+
+async def _run_polling_only() -> None:
+    """Console entry for polling mode (no HTTP server)."""
+    secrets = BotSecrets.from_env()
+    router, deps = _build_router(secrets)  # type: ignore[arg-type]
+    await _populate_pools(deps)
+    stop = asyncio.Event()
+    try:
+        await long_poll_loop(secrets, _build_handler(router, deps), stop=stop)
+    finally:
+        await deps.telegram.aclose()
+
+
+# Defensive re-export so test code can build the router standalone.
+def _build_router(secrets: BotSecrets) -> tuple[DispatchRouter, HandlerDeps]:
+    return _build_router_and_deps(secrets)

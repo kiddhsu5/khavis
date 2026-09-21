@@ -1,0 +1,28 @@
+# Caddyfile for llm-router-bot.
+#
+# Mount the existing LE cert at /etc/caddy/certs/<domain>/ if you have
+# one. Otherwise drop the `tls` block and Caddy will request a fresh
+# cert via Let's Encrypt automatically (requires port 80/443 reachable
+# from the public internet during the first request).
+
+{
+    email admin@bot.kiddhsu.taipei
+}
+
+bot.kiddhsu.taipei, :443 {
+    encode zstd gzip
+    reverse_proxy 127.0.0.1:8080
+
+    tls /etc/caddy/certs/bot.kiddhsu.taipei/fullchain.pem \
+        /etc/caddy/certs/bot.kiddhsu.taipei/privkey.pem
+
+    log {
+        output stdout
+        format console
+    }
+}
+
+# HTTP→HTTPS redirect (so webhook registration that hits :80 still finds us).
+:80 {
+    redir https://{host}{uri} permanent
+}
