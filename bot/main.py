@@ -135,12 +135,21 @@ def _build_handler(router: DispatchRouter, deps: HandlerDeps):
     """Closure that routes an IncomingMessage to its handler."""
 
     async def handle(incoming: IncomingMessage) -> None:
+        # Always log chat_id so the operator can populate ALLOWED_CHAT_IDS
+        # when bootstrapping a fresh deployment.
+        print(
+            f"[bot.main] incoming chat_id={incoming.chat_id} "
+            f"user_id={incoming.user_id} text={incoming.text!r}",
+            flush=True,
+        )
         handler = route_command(incoming.text or "")
         if handler is None:
             return
         if not is_allowed(incoming.chat_id, deps.allowlist):
             with contextlib.suppress(Exception):
-                await deps.telegram.send_message(incoming.chat_id, "🚫 Not authorized.")
+                await deps.telegram.send_message(
+                    incoming.chat_id, "🚫 Not authorized.", parse_mode=None
+                )
             return
         if handler.__name__ == "handle_run":
             envelope = await handler(incoming, deps)
@@ -201,3 +210,7 @@ async def _run_polling_only() -> None:
 # Defensive re-export so test code can build the router standalone.
 def _build_router(secrets: BotSecrets) -> tuple[DispatchRouter, HandlerDeps]:
     return _build_router_and_deps(secrets)
+
+
+if __name__ == "__main__":
+    main()

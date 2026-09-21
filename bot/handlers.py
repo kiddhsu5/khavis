@@ -98,11 +98,15 @@ async def handle_start(msg: IncomingMessage, deps: HandlerDeps) -> None:
 
     api: TelegramAPI = deps.telegram  # type: ignore[assignment]
     if not is_allowed(msg.chat_id, deps.allowlist):
-        await api.send_message(msg.chat_id, "🚫 Not authorized.")
+        # Plain text (no MarkdownV2) — minimal escape risk.
+        await api.send_message(
+            msg.chat_id, "🚫 Not authorized.", parse_mode=None
+        )
         return
     await api.send_message(
         msg.chat_id,
-        f"👋 Welcome\\! Send /help for usage. (chat_id={msg.chat_id})",
+        f"👋 Welcome! Send /help for usage. (chat_id={msg.chat_id})",
+        parse_mode=None,
         reply_to=msg.update_id,
     )
 
@@ -113,7 +117,7 @@ async def handle_help(msg: IncomingMessage, deps: HandlerDeps) -> None:
     api: TelegramAPI = deps.telegram  # type: ignore[assignment]
     if not is_allowed(msg.chat_id, deps.allowlist):
         return
-    await api.send_message(msg.chat_id, HELP_TEXT, reply_to=msg.update_id)
+    await api.send_message(msg.chat_id, HELP_TEXT, parse_mode=None, reply_to=msg.update_id)
 
 
 async def handle_status(msg: IncomingMessage, deps: HandlerDeps) -> None:
@@ -133,7 +137,7 @@ async def handle_status(msg: IncomingMessage, deps: HandlerDeps) -> None:
             lines.append(f"{check} `{name}` \\- {detail}")
         except Exception as exc:  # noqa: BLE001
             lines.append(f"❌ `{name}` \\- error: {exc!r}")
-    await api.send_message(msg.chat_id, "\n".join(lines), reply_to=msg.update_id)
+    await api.send_message(msg.chat_id, "\n".join(lines), parse_mode=None, reply_to=msg.update_id)
 
 
 async def handle_pools(msg: IncomingMessage, deps: HandlerDeps) -> None:
@@ -143,13 +147,13 @@ async def handle_pools(msg: IncomingMessage, deps: HandlerDeps) -> None:
     if not is_allowed(msg.chat_id, deps.allowlist):
         return
     if not deps.pools:
-        await api.send_message(msg.chat_id, "_(no pools registered)_")
+        await api.send_message(msg.chat_id, "(no pools registered)", parse_mode=None)
         return
-    lines = ["*llm\\-router pools*"]
+    lines = ["*llm-router pools*"]
     for name, caps in deps.pools:
         cap_str = TelegramAPI.escape_markdown_v2(", ".join(caps))
         lines.append(f"• `{TelegramAPI.escape_markdown_v2(name)}` — {cap_str}")
-    await api.send_message(msg.chat_id, "\n".join(lines), reply_to=msg.update_id)
+    await api.send_message(msg.chat_id, "\n".join(lines), parse_mode=None, reply_to=msg.update_id)
 
 
 async def handle_run(msg: IncomingMessage, deps: HandlerDeps) -> DispatchEnvelope | None:
@@ -162,7 +166,8 @@ async def handle_run(msg: IncomingMessage, deps: HandlerDeps) -> DispatchEnvelop
     if not prompt:
         await api.send_message(
             msg.chat_id,
-            "usage: /run \\<prompt\\>",
+            "usage: /run <prompt>",
+            parse_mode=None,
             reply_to=msg.update_id,
         )
         return None

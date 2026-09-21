@@ -30,7 +30,10 @@ class TelegramAPI:
 
     async def _post(self, method: str, **params: Any) -> dict[str, Any]:
         url = API_BASE.format(token=self._token, method=method)
-        r = await self._client.post(url, json=params)
+        # Drop keys whose value is None — Telegram rejects e.g.
+        # ``parse_mode=null`` with HTTP 400.
+        payload = {k: v for k, v in params.items() if v is not None}
+        r = await self._client.post(url, json=payload)
         r.raise_for_status()
         data = r.json()
         if not data.get("ok"):
@@ -42,7 +45,7 @@ class TelegramAPI:
         chat_id: int,
         text: str,
         *,
-        parse_mode: str = "MarkdownV2",
+        parse_mode: str | None = None,
         reply_to: int | None = None,
     ) -> dict[str, Any]:
         return await self._post(
@@ -60,7 +63,7 @@ class TelegramAPI:
         message_id: int,
         text: str,
         *,
-        parse_mode: str = "MarkdownV2",
+        parse_mode: str | None = None,
     ) -> dict[str, Any]:
         return await self._post(
             "editMessageText",
