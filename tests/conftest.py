@@ -6,15 +6,14 @@ You may obtain a copy of the License at
 
     http://www.apache.org/licenses/LICENSE-2.0
 """
+
 from __future__ import annotations
 
 import os
 import sys
 from pathlib import Path
-from typing import Dict, Optional
 
 import pytest
-
 
 # Ensure the project root is on ``sys.path`` so ``providers`` and ``core``
 # resolve regardless of how pytest is invoked.
@@ -31,7 +30,7 @@ def _has_env(name: str) -> bool:
 
 
 # Mapping of pool name → required API key env var (mirrors pools.yaml).
-POOL_ENV_KEYS: Dict[str, Optional[str]] = {
+POOL_ENV_KEYS: dict[str, str | None] = {
     "MiniMax-M3": "MiniMax_API_KEY",
     "GLM-5.3": "ZHIPUAI_API_KEY",
     "Google-Gemini": "GOOGLE_API_KEY",

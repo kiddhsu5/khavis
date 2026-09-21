@@ -12,22 +12,22 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 """
+
 from __future__ import annotations
 
 import os
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 import requests
 
 from .base import ProviderPlugin
-
 
 DEFAULT_MODEL = "gemma4:e2b"
 SURFACE_IP_ENV = "SURFACE_IP"
 _OPENAI_COMPAT_PREFIX = "ollama/"
 
 
-def _normalize_model(model: Optional[str]) -> Optional[str]:
+def _normalize_model(model: str | None) -> str | None:
     """Strip the OpenAI-compat ``ollama/`` prefix used on ``/v1/chat/completions``.
 
     The native ``/api/chat`` endpoint expects a bare model tag like
@@ -39,7 +39,7 @@ def _normalize_model(model: Optional[str]) -> Optional[str]:
     if not model:
         return model
     if model.startswith(_OPENAI_COMPAT_PREFIX):
-        return model[len(_OPENAI_COMPAT_PREFIX):]
+        return model[len(_OPENAI_COMPAT_PREFIX) :]
     return model
 
 
@@ -74,18 +74,16 @@ class OllamaPlugin(ProviderPlugin):
     def __init__(
         self,
         name: str = "Ollama-Mac",
-        base_url: Optional[str] = None,
-        model: Optional[str] = None,
-        capabilities: Optional[List[str]] = None,
-        metadata: Optional[Dict[str, Any]] = None,
+        base_url: str | None = None,
+        model: str | None = None,
+        capabilities: list[str] | None = None,
+        metadata: dict[str, Any] | None = None,
     ) -> None:
         if base_url is None:
             if name.lower().startswith("ollama-surface"):
                 surface_ip = os.getenv(SURFACE_IP_ENV)
                 base_url = (
-                    f"http://{surface_ip}:11434"
-                    if surface_ip
-                    else "http://surface.local:11434"
+                    f"http://{surface_ip}:11434" if surface_ip else "http://surface.local:11434"
                 )
             else:
                 base_url = "http://localhost:11434"
@@ -105,9 +103,9 @@ class OllamaPlugin(ProviderPlugin):
     # ------------------------------------------------------------------
     # ProviderPlugin interface
     # ------------------------------------------------------------------
-    def chat(self, messages: List[Dict[str, str]], **kwargs: Any) -> Dict[str, Any]:
+    def chat(self, messages: list[dict[str, str]], **kwargs: Any) -> dict[str, Any]:
         url = f"{self.default_endpoint.rstrip('/')}/api/chat"
-        payload: Dict[str, Any] = {
+        payload: dict[str, Any] = {
             "model": _normalize_model(self.model),
             "messages": messages,
             "stream": False,
@@ -115,7 +113,7 @@ class OllamaPlugin(ProviderPlugin):
         payload.update(kwargs)
         resp = requests.post(url, json=payload, timeout=120)
         resp.raise_for_status()
-        data: Dict[str, Any] = resp.json()
+        data: dict[str, Any] = resp.json()
         # Normalise to OpenAI-style response.
         content = ""
         if isinstance(data, dict):
@@ -127,7 +125,7 @@ class OllamaPlugin(ProviderPlugin):
             "usage": {},
         }
 
-    def check_quota(self) -> Dict[str, Any]:
+    def check_quota(self) -> dict[str, Any]:
         # Ollama is local, so quota is effectively unbounded.
         return {
             "remaining": None,
@@ -137,7 +135,7 @@ class OllamaPlugin(ProviderPlugin):
             "note": "Local Ollama has no external quota.",
         }
 
-    def list_models(self) -> List[str]:
+    def list_models(self) -> list[str]:
         url = f"{self.default_endpoint.rstrip('/')}/api/tags"
         try:
             resp = requests.get(url, timeout=10)
@@ -147,7 +145,7 @@ class OllamaPlugin(ProviderPlugin):
         except Exception:
             return []
 
-    def health_check(self) -> Dict[str, Any]:
+    def health_check(self) -> dict[str, Any]:
         try:
             resp = requests.get(self.default_endpoint, timeout=5)
             ok = resp.status_code < 500

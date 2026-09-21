@@ -21,6 +21,7 @@ Run::
 Exit code is ``0`` if every pool that *could* run passed; otherwise
 ``1``. A pool that is *skipped* does not influence the exit code.
 """
+
 from __future__ import annotations
 
 import argparse
@@ -29,28 +30,29 @@ import sys
 import time
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Dict, List, Optional
-
+from typing import Any
 
 # Ensure the project root is importable when invoked directly.
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
+# Load .env (SURFACE_IP, *API_KEY, ...) before plugins are constructed.
+from core.env import load_env  # noqa: E402
+
+load_env()
 from providers.base import ProviderPlugin  # noqa: E402
-from providers.MiniMax import MiniMaxPlugin  # noqa: E402
-from providers.glm import GLMPlugin  # noqa: E402
+from providers.claude import AnthropicPlugin  # noqa: E402
 from providers.gemini import GeminiPlugin  # noqa: E402
+from providers.glm import GLMPlugin  # noqa: E402
+from providers.MiniMax import MiniMaxPlugin  # noqa: E402
 from providers.nvidia import NvidiaPlugin  # noqa: E402
+from providers.ollama import OllamaPlugin  # noqa: E402
+from providers.openai import OpenAIPlugin  # noqa: E402
+from providers.openrouter import OpenRouterPlugin  # noqa: E402
 from providers.volcano import (  # noqa: E402
     VolcanoPluginFactory,
-    SUB_POOLS,
 )
-from providers.openrouter import OpenRouterPlugin  # noqa: E402
-from providers.openai import OpenAIPlugin  # noqa: E402
-from providers.claude import AnthropicPlugin  # noqa: E402
-from providers.ollama import OllamaPlugin  # noqa: E402
-
 
 # ---------------------------------------------------------------------------
 # ANSI colour helpers (auto-disabled when stdout is not a TTY)
@@ -90,15 +92,15 @@ class PoolSpec:
     """Static description of a single pool to test."""
 
     name: str
-    env_key: Optional[str]
+    env_key: str | None
     factory: Any
-    metadata: Dict[str, Any] = field(default_factory=dict)
+    metadata: dict[str, Any] = field(default_factory=dict)
     requires_api_key: bool = True
 
 
-def _build_pools() -> List[PoolSpec]:
+def _build_pools() -> list[PoolSpec]:
     """Build the ordered list of pools to test."""
-    pools: List[PoolSpec] = [
+    pools: list[PoolSpec] = [
         PoolSpec(
             name="MiniMax-M3",
             env_key="MiniMax_API_KEY",
@@ -189,8 +191,8 @@ class PoolResult:
     status: str  # "pass" | "fail" | "skip"
     duration_s: float
     detail: str = ""
-    response: Optional[Dict[str, Any]] = None
-    error: Optional[str] = None
+    response: dict[str, Any] | None = None
+    error: str | None = None
 
 
 def _missing_key(spec: PoolSpec) -> bool:
@@ -255,7 +257,7 @@ def _format_status(result: PoolResult) -> str:
     return red("  FAIL")
 
 
-def _summarise_response(response: Dict[str, Any]) -> str:
+def _summarise_response(response: dict[str, Any]) -> str:
     """Pull a one-line preview out of a normalised chat response."""
     try:
         choice = response["choices"][0]
@@ -266,7 +268,7 @@ def _summarise_response(response: Dict[str, Any]) -> str:
     return preview[:60] + ("..." if len(preview) > 60 else "")
 
 
-def _print_results(results: List[PoolResult], verbose: bool) -> None:
+def _print_results(results: list[PoolResult], verbose: bool) -> None:
     print(bold("\nIntegration test results"))
     print("=" * 72)
     for result in results:
@@ -291,7 +293,7 @@ def _print_results(results: List[PoolResult], verbose: bool) -> None:
     print("=" * 72)
 
 
-def _print_summary(results: List[PoolResult], total_s: float) -> None:
+def _print_summary(results: list[PoolResult], total_s: float) -> None:
     passed = sum(1 for r in results if r.status == "pass")
     failed = sum(1 for r in results if r.status == "fail")
     skipped = sum(1 for r in results if r.status == "skip")
@@ -306,7 +308,7 @@ def _print_summary(results: List[PoolResult], total_s: float) -> None:
 # ---------------------------------------------------------------------------
 # CLI
 # ---------------------------------------------------------------------------
-def _parse_args(argv: Optional[List[str]] = None) -> argparse.Namespace:
+def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="Ping every llm-router pool with a minimal prompt.",
     )
@@ -328,7 +330,7 @@ def _parse_args(argv: Optional[List[str]] = None) -> argparse.Namespace:
     return parser.parse_args(argv)
 
 
-def main(argv: Optional[List[str]] = None) -> int:
+def main(argv: list[str] | None = None) -> int:
     global _USE_COLOR
     args = _parse_args(argv)
     if args.no_color:
@@ -342,7 +344,7 @@ def main(argv: Optional[List[str]] = None) -> int:
             return 1
 
     print(bold(f"Pinging {len(pools)} pool(s)..."))
-    results: List[PoolResult] = []
+    results: list[PoolResult] = []
     overall = time.perf_counter()
     for spec in pools:
         results.append(_run_pool(spec, verbose=args.verbose))

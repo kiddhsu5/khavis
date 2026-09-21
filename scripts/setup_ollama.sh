@@ -87,15 +87,24 @@ list_remote_models() {
     | sort -u
 }
 
-# pull_if_missing <remote_model_list_text> <model>
+# pull_if_missing <base_url> <remote_model_list_text> <model>
 #   echoes "skip" if already present, "pulled" if it had to fetch.
+#   Uses the Ollama HTTP /api/pull endpoint so the pull happens on the
+#   target host, not on whatever machine is running this script.
 pull_if_missing() {
-  local models="$1" want="$2"
+  local base="$1" models="$2" want="$3"
   if grep -Fxq "$want" <<<"$models"; then
     echo "skip"
     return 0
   fi
-  ollama pull "$want"
+  # /api/pull streams NDJSON status updates; ignore the body and just
+  # exit non-zero on connection / HTTP failure. Long timeout because
+  # model pulls can take minutes.
+  curl --silent --fail --max-time 1800 \
+    -X POST "$base/api/pull" \
+    -H 'Content-Type: application/json' \
+    -d "{\"name\":\"$want\",\"stream\":false}" \
+    > /dev/null
   echo "pulled"
 }
 
@@ -153,7 +162,7 @@ run_mac() {
   local models
   models=$(list_remote_models "$base" || true)
   for m in "${MAC_REQUIRED_MODELS[@]}"; do
-    case "$(pull_if_missing "$models" "$m")" in
+    case "$(pull_if_missing "$base" "$models" "$m")" in
       skip)   ok "model present:    $m" ;;
       pulled) ok "model pulled:     $m" ;;
       *)      bad "model pull failed: $m"; failed=1 ;;
@@ -216,7 +225,7 @@ run_surface() {
   models=$(list_remote_models "$base" || true)
   local failed=0
   for m in "${SURFACE_REQUIRED_MODELS[@]}"; do
-    case "$(pull_if_missing "$models" "$m")" in
+    case "$(pull_if_missing "$base" "$models" "$m")" in
       skip)   ok "model present:    $m" ;;
       pulled) ok "model pulled:     $m" ;;
       *)      bad "model pull failed: $m"; failed=1 ;;

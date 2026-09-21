@@ -12,15 +12,15 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 """
+
 from __future__ import annotations
 
 import os
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 import requests
 
 from .base import ProviderPlugin
-
 
 DEFAULT_ENDPOINT = "https://integrate.api.nvidia.com/v1"
 ENV_KEY = "NVIDIA_API_KEY"
@@ -39,18 +39,19 @@ class NvidiaPlugin(ProviderPlugin):
 
     def __init__(
         self,
-        endpoint: Optional[str] = None,
-        api_key: Optional[str] = None,
-        model: Optional[str] = None,
-        capabilities: Optional[List[str]] = None,
-        metadata: Optional[Dict[str, Any]] = None,
+        endpoint: str | None = None,
+        api_key: str | None = None,
+        model: str | None = None,
+        capabilities: list[str] | None = None,
+        metadata: dict[str, Any] | None = None,
     ) -> None:
         super().__init__(
             name="NVIDIA-Cloud",
             endpoint=endpoint or DEFAULT_ENDPOINT,
             api_key=api_key or os.getenv(ENV_KEY),
             model=model,
-            capabilities=capabilities or [
+            capabilities=capabilities
+            or [
                 "英文",
                 "推理",
                 "工具調用",
@@ -63,7 +64,7 @@ class NvidiaPlugin(ProviderPlugin):
     # ------------------------------------------------------------------
     # ProviderPlugin interface
     # ------------------------------------------------------------------
-    def chat(self, messages: List[Dict[str, str]], **kwargs: Any) -> Dict[str, Any]:
+    def chat(self, messages: list[dict[str, str]], **kwargs: Any) -> dict[str, Any]:
         if not self.api_key:
             raise RuntimeError("NVIDIA_API_KEY not configured")
         model = kwargs.pop("model", self.model)
@@ -72,16 +73,16 @@ class NvidiaPlugin(ProviderPlugin):
             "Authorization": f"Bearer {self.api_key}",
             "Content-Type": "application/json",
         }
-        payload: Dict[str, Any] = {"model": model, "messages": messages}
+        payload: dict[str, Any] = {"model": model, "messages": messages}
         payload.update(kwargs)
         resp = requests.post(url, headers=headers, json=payload, timeout=60)
         resp.raise_for_status()
-        data: Dict[str, Any] = resp.json()
+        data: dict[str, Any] = resp.json()
         if "choices" not in data:
             data["choices"] = []
         return data
 
-    def check_quota(self) -> Dict[str, Any]:
+    def check_quota(self) -> dict[str, Any]:
         return {
             "remaining": None,
             "total": None,
@@ -90,7 +91,7 @@ class NvidiaPlugin(ProviderPlugin):
             "note": "NVIDIA NIM quota is surfaced via the NVIDIA developer dashboard.",
         }
 
-    def list_models(self) -> List[str]:
+    def list_models(self) -> list[str]:
         if not self.api_key:
             return []
         url = f"{self.default_endpoint.rstrip('/')}/models"
@@ -110,7 +111,7 @@ class NvidiaPlugin(ProviderPlugin):
             return []
         return []
 
-    def health_check(self) -> Dict[str, Any]:
+    def health_check(self) -> dict[str, Any]:
         return {
             "ok": bool(self.api_key) and bool(self.default_endpoint),
             "detail": (

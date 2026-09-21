@@ -12,12 +12,14 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 """
+
 from __future__ import annotations
 
 import random
+from collections.abc import Iterable
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Dict, Iterable, List, Optional
+from typing import Any
 
 import yaml
 
@@ -31,11 +33,11 @@ class CapabilityEntry:
     """One YAML entry mapping a capability tag to candidate pools + weight."""
 
     capability: str
-    pools: List[str] = field(default_factory=list)
+    pools: list[str] = field(default_factory=list)
     weight: float = 1.0
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> "CapabilityEntry":
+    def from_dict(cls, data: dict[str, Any]) -> CapabilityEntry:
         return cls(
             capability=data["capability"],
             pools=list(data.get("pools", [])),
@@ -48,33 +50,31 @@ class CapabilityRouter:
 
     def __init__(self, registry: PluginRegistry) -> None:
         self.registry = registry
-        self._entries: List[CapabilityEntry] = []
+        self._entries: list[CapabilityEntry] = []
 
     # ------------------------------------------------------------------
     # Configuration
     # ------------------------------------------------------------------
-    def load_capabilities(self, path: Path) -> "CapabilityRouter":
+    def load_capabilities(self, path: Path) -> CapabilityRouter:
         """Load capability → pools mappings from a YAML file."""
         data = yaml.safe_load(Path(path).read_text(encoding="utf-8")) or {}
         entries_raw = data.get("capabilities", [])
         self._entries = [CapabilityEntry.from_dict(item) for item in entries_raw]
         return self
 
-    def entries(self) -> List[CapabilityEntry]:
+    def entries(self) -> list[CapabilityEntry]:
         return list(self._entries)
 
     # ------------------------------------------------------------------
     # Routing
     # ------------------------------------------------------------------
-    def candidates(self, capability: str) -> List[ProviderPlugin]:
+    def candidates(self, capability: str) -> list[ProviderPlugin]:
         """Return registry plugins that advertise ``capability``."""
         # First, look for an explicit YAML entry; otherwise fall back to the
         # registry's own capability tags so the system degrades gracefully
         # when the YAML is incomplete.
-        explicit = next(
-            (e for e in self._entries if e.capability == capability), None
-        )
-        plugins: List[ProviderPlugin] = []
+        explicit = next((e for e in self._entries if e.capability == capability), None)
+        plugins: list[ProviderPlugin] = []
         if explicit and explicit.pools:
             for name in explicit.pools:
                 plugin = self.registry.get(name)
@@ -89,8 +89,8 @@ class CapabilityRouter:
         capability: str,
         *,
         strategy: str = "weighted",
-        rng: Optional[random.Random] = None,
-    ) -> Optional[ProviderPlugin]:
+        rng: random.Random | None = None,
+    ) -> ProviderPlugin | None:
         """Pick a single plugin for the given capability.
 
         ``strategy`` can be ``"weighted"`` (default), ``"round_robin"`` or
@@ -106,10 +106,8 @@ class CapabilityRouter:
             idx = abs(hash(capability)) % len(candidates)
             return candidates[idx]
         # Default: weighted random using the YAML weight when present.
-        explicit = next(
-            (e for e in self._entries if e.capability == capability), None
-        )
-        weights: List[float] = []
+        explicit = next((e for e in self._entries if e.capability == capability), None)
+        weights: list[float] = []
         for plugin in candidates:
             if explicit:
                 # YAML weight applies if the pool appears in the YAML list.
@@ -122,9 +120,7 @@ class CapabilityRouter:
         return _weighted_choice(candidates, weights, rng or random)
 
 
-def _weighted_choice(
-    items: List[Any], weights: Iterable[float], rng: random.Random
-) -> Any:
+def _weighted_choice(items: list[Any], weights: Iterable[float], rng: random.Random) -> Any:
     items = list(items)
     weights = [max(0.0, float(w)) for w in weights]
     total = sum(weights)
@@ -132,7 +128,7 @@ def _weighted_choice(
         return rng.choice(items)
     pick = rng.uniform(0, total)
     upto = 0.0
-    for item, weight in zip(items, weights):
+    for item, weight in zip(items, weights, strict=False):
         upto += weight
         if pick <= upto:
             return item

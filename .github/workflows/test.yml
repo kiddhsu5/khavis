@@ -12,7 +12,6 @@ permissions:
 
 env:
   PYTHON_VERSION: "3.12"
-  PIP_NO_CACHE_DIR: "1"
 
 jobs:
   test:

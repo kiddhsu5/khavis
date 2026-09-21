@@ -12,10 +12,11 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 """
+
 from __future__ import annotations
 
 import os
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from .base import ProviderPlugin
 
@@ -37,18 +38,19 @@ class AnthropicPlugin(ProviderPlugin):
 
     def __init__(
         self,
-        endpoint: Optional[str] = None,
-        api_key: Optional[str] = None,
-        model: Optional[str] = None,
-        capabilities: Optional[List[str]] = None,
-        metadata: Optional[Dict[str, Any]] = None,
+        endpoint: str | None = None,
+        api_key: str | None = None,
+        model: str | None = None,
+        capabilities: list[str] | None = None,
+        metadata: dict[str, Any] | None = None,
     ) -> None:
         super().__init__(
             name="Claude-API",
             endpoint=endpoint or DEFAULT_ENDPOINT,
             api_key=api_key or os.getenv(ENV_KEY),
             model=model or DEFAULT_MODEL,
-            capabilities=capabilities or [
+            capabilities=capabilities
+            or [
                 "英文",
                 "推理",
                 "工具調用",
@@ -68,7 +70,7 @@ class AnthropicPlugin(ProviderPlugin):
             )
         return self._client
 
-    def chat(self, messages: List[Dict[str, str]], **kwargs: Any) -> Dict[str, Any]:
+    def chat(self, messages: list[dict[str, str]], **kwargs: Any) -> dict[str, Any]:
         """Send a chat completion request via the Anthropic Messages API.
 
         Translates the OpenAI-style ``messages`` shape (system + alternating
@@ -79,24 +81,21 @@ class AnthropicPlugin(ProviderPlugin):
         client = self._get_client()
         model = kwargs.pop("model", self.model)
 
-        system_text: Optional[str] = None
-        converted: List[Dict[str, str]] = []
+        system_text: str | None = None
+        converted: list[dict[str, str]] = []
         for msg in messages:
             role = msg.get("role")
             content = msg.get("content", "")
             if role == "system":
                 # Anthropic takes a single system string; concatenate if multiple.
-                if system_text is None:
-                    system_text = content
-                else:
-                    system_text = f"{system_text}\n\n{content}"
+                system_text = content if system_text is None else f"{system_text}\n\n{content}"
             elif role in ("user", "assistant"):
                 converted.append({"role": role, "content": content})
             else:
                 # Unknown role — treat as user input to avoid dropping data.
                 converted.append({"role": "user", "content": content})
 
-        create_kwargs: Dict[str, Any] = {
+        create_kwargs: dict[str, Any] = {
             "model": model,
             "messages": converted,
             "max_tokens": kwargs.pop("max_tokens", 1024),
@@ -108,7 +107,7 @@ class AnthropicPlugin(ProviderPlugin):
         response = client.messages.create(**create_kwargs)  # type: ignore[arg-type]
         return self._normalize(response)
 
-    def check_quota(self) -> Dict[str, Any]:
+    def check_quota(self) -> dict[str, Any]:
         return {
             "remaining": "unknown",
             "total": "unknown",
@@ -121,14 +120,14 @@ class AnthropicPlugin(ProviderPlugin):
             ),
         }
 
-    def list_models(self) -> List[str]:
+    def list_models(self) -> list[str]:
         return [
             "claude-sonnet-5",
             "claude-opus-4-5",
             "claude-haiku-4-5-20251001",
         ]
 
-    def health_check(self) -> Dict[str, Any]:
+    def health_check(self) -> dict[str, Any]:
         return {
             "ok": bool(self.api_key) and bool(self.default_endpoint),
             "detail": (
@@ -140,7 +139,7 @@ class AnthropicPlugin(ProviderPlugin):
     # ------------------------------------------------------------------
     # Helpers
     # ------------------------------------------------------------------
-    def _normalize(self, response: Any) -> Dict[str, Any]:
+    def _normalize(self, response: Any) -> dict[str, Any]:
         """Coerce an Anthropic Messages response into the OpenAI-style dict.
 
         Output shape::
@@ -154,7 +153,7 @@ class AnthropicPlugin(ProviderPlugin):
             }
         """
         # Extract text content from the Anthropic content blocks.
-        text_parts: List[str] = []
+        text_parts: list[str] = []
         try:
             blocks = getattr(response, "content", None) or []
         except Exception:  # pragma: no cover - defensive
@@ -170,7 +169,7 @@ class AnthropicPlugin(ProviderPlugin):
         content = "".join(text_parts)
         model = getattr(response, "model", self.model)
 
-        usage: Dict[str, Any] = {}
+        usage: dict[str, Any] = {}
         try:
             u = getattr(response, "usage", None)
             if u is not None:
@@ -182,9 +181,7 @@ class AnthropicPlugin(ProviderPlugin):
             usage = {}
 
         return {
-            "choices": [
-                {"message": {"content": content, "role": "assistant"}}
-            ],
+            "choices": [{"message": {"content": content, "role": "assistant"}}],
             "model": model,
             "usage": usage,
         }

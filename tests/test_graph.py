@@ -24,6 +24,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 """
+
 from __future__ import annotations
 
 import sys
@@ -35,8 +36,8 @@ if str(_PROJECT_ROOT) not in sys.path:
 
 import pytest  # noqa: E402
 
-from agents import state as state_mod  # noqa: E402
 from agents import roles as roles_mod  # noqa: E402
+from agents import state as state_mod  # noqa: E402
 from agents.agent_factory import AgentFactory, set_agent_factory  # noqa: E402
 from agents.nodes import (  # noqa: E402
     coder_a_node,
@@ -88,7 +89,11 @@ class FakePool:
 class FakeFactory(AgentFactory):
     def __init__(self, answers=None, fail_for=None):
         # Skip real registry / router init.
-        self.registry = type("R", (), {"get": lambda self, n: FakePool(n), "by_capability": lambda self, c: [FakePool()]})()
+        self.registry = type(
+            "R",
+            (),
+            {"get": lambda self, n: FakePool(n), "by_capability": lambda self, c: [FakePool()]},
+        )()
         self.router = type(
             "Router",
             (),
@@ -102,7 +107,6 @@ class FakeFactory(AgentFactory):
         self._cache = {}
 
     def create_agent(self, role, pool_name=None):
-        from agents.roles import Role
         cache_key = (role.name, pool_name or "default")
         if cache_key in self._cache:
             return self._cache[cache_key]
@@ -216,7 +220,9 @@ def test_critic_node_records_review():
 
 def test_verify_node_routes_pass_and_retry():
     # Set FakeFactory answers to JSON that should pass.
-    set_agent_factory(FakeFactory(answers={"verifier": '{"passed": true, "issues": [], "suggestions": []}'}))
+    set_agent_factory(
+        FakeFactory(answers={"verifier": '{"passed": true, "issues": [], "suggestions": []}'})
+    )
     s: state_mod.TeamState = {
         "task": "t",
         "code_a": "A",
@@ -229,8 +235,18 @@ def test_verify_node_routes_pass_and_retry():
     assert out["verification"]["passed"] is True
 
     # Now force a failing payload.
-    set_agent_factory(FakeFactory(answers={"verifier": '{"passed": false, "issues": ["x"], "suggestions": []}'}))
-    out2 = verify_node({"task": "t", "code_a": "A", "code_b": "B", "critic_review": "ok", "attribution": {"records": []}})
+    set_agent_factory(
+        FakeFactory(answers={"verifier": '{"passed": false, "issues": ["x"], "suggestions": []}'})
+    )
+    out2 = verify_node(
+        {
+            "task": "t",
+            "code_a": "A",
+            "code_b": "B",
+            "critic_review": "ok",
+            "attribution": {"records": []},
+        }
+    )
     assert out2["__verify_route__"] == VERIFY_RETRY
     assert out2["verification"]["passed"] is False
     assert route_after_verify(out2) == VERIFY_RETRY
@@ -283,6 +299,7 @@ def test_build_graph_returns_compiled():
     except ImportError:
         pytest.skip("langgraph not installed")
     from agents.graph import build_graph
+
     g = build_graph()
     assert g is not None
     # Compiled graphs expose ``invoke`` and ``stream``.

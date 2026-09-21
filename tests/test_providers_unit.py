@@ -16,29 +16,28 @@ suite runs offline. Each plugin is exercised through:
     * ``health_check()`` returns ``{"ok": bool, "detail": str}``
       and handles missing keys gracefully.
 """
+
 from __future__ import annotations
 
-from typing import Any, Dict, List
+from typing import Any
 from unittest.mock import MagicMock, patch
 
 import pytest
 
 from providers.base import ProviderPlugin
-from providers.MiniMax import MiniMaxPlugin
-from providers.glm import GLMPlugin
+from providers.claude import AnthropicPlugin
 from providers.gemini import GeminiPlugin
+from providers.glm import GLMPlugin
+from providers.MiniMax import MiniMaxPlugin
 from providers.nvidia import NvidiaPlugin
+from providers.ollama import DEFAULT_MODEL, OllamaPlugin, _normalize_model
+from providers.openai import OpenAIPlugin
+from providers.openrouter import OpenRouterPlugin
 from providers.volcano import (
     SUB_POOLS,
     VolcanoPluginFactory,
     VolcanoSubPool,
 )
-from providers.openrouter import OpenRouterPlugin
-from providers.ollama import OllamaPlugin
-from providers.openai import OpenAIPlugin
-from providers.claude import AnthropicPlugin
-from providers.ollama import DEFAULT_MODEL, _normalize_model
-
 
 PING = [{"role": "user", "content": "ping"}]
 
@@ -46,7 +45,7 @@ PING = [{"role": "user", "content": "ping"}]
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
-def _sdk_response(payload: Dict[str, Any]) -> MagicMock:
+def _sdk_response(payload: dict[str, Any]) -> MagicMock:
     """Build a mock that mimics the OpenAI SDK response object."""
     mock = MagicMock()
     mock.model_dump.return_value = payload
@@ -113,9 +112,11 @@ class TestMiniMaxPlugin:
 
     def test_chat_missing_openai_sdk(self):
         p = MiniMaxPlugin(api_key="key")
-        with patch.object(p, "_get_client", side_effect=RuntimeError("no openai")):
-            with pytest.raises(RuntimeError):
-                p.chat(PING)
+        with (
+            patch.object(p, "_get_client", side_effect=RuntimeError("no openai")),
+            pytest.raises(RuntimeError),
+        ):
+            p.chat(PING)
 
     def test_check_quota_shape(self):
         _quota_ok(MiniMaxPlugin(api_key="x"))
@@ -191,9 +192,8 @@ class TestGeminiPlugin:
 
     def test_chat_without_genai_sdk(self):
         p = GeminiPlugin(api_key="x")
-        with patch("providers.gemini.genai", None):
-            with pytest.raises(RuntimeError):
-                p.chat(PING)
+        with patch("providers.gemini.genai", None), pytest.raises(RuntimeError):
+            p.chat(PING)
 
     def test_chat_without_api_key(self):
         p = GeminiPlugin(api_key=None)
@@ -370,6 +370,7 @@ class TestVolcanoPlugin:
 
     def test_module_factory_instance(self):
         from providers import volcano as volcano_mod
+
         # Module-level singleton should exist and produce three pools.
         assert volcano_mod.VolcanoFactory() is not None or volcano_mod.VolcanoFactory is not None
 
@@ -436,9 +437,7 @@ class TestOpenAIPlugin:
 
     def test_chat(self):
         p = OpenAIPlugin(api_key="x")
-        fake = _sdk_response(
-            {"choices": [{"message": {"content": "ok", "role": "assistant"}}]}
-        )
+        fake = _sdk_response({"choices": [{"message": {"content": "ok", "role": "assistant"}}]})
         with patch.object(p, "_get_client") as gc:
             gc.return_value.chat.completions.create.return_value = fake
             out = p.chat(PING, max_tokens=5)
@@ -454,9 +453,11 @@ class TestOpenAIPlugin:
 
     def test_chat_missing_openai_sdk(self):
         p = OpenAIPlugin(api_key="key")
-        with patch.object(p, "_get_client", side_effect=RuntimeError("no openai")):
-            with pytest.raises(RuntimeError):
-                p.chat(PING)
+        with (
+            patch.object(p, "_get_client", side_effect=RuntimeError("no openai")),
+            pytest.raises(RuntimeError),
+        ):
+            p.chat(PING)
 
     def test_check_quota_shape(self):
         q = OpenAIPlugin(api_key="x").check_quota()
@@ -567,9 +568,11 @@ class TestAnthropicPlugin:
 
     def test_chat_missing_anthropic_sdk(self):
         p = AnthropicPlugin(api_key="key")
-        with patch.object(p, "_get_client", side_effect=RuntimeError("no anthropic")):
-            with pytest.raises(RuntimeError):
-                p.chat(PING)
+        with (
+            patch.object(p, "_get_client", side_effect=RuntimeError("no anthropic")),
+            pytest.raises(RuntimeError),
+        ):
+            p.chat(PING)
 
     def test_check_quota_shape(self):
         q = AnthropicPlugin(api_key="x").check_quota()

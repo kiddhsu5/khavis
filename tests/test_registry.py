@@ -6,19 +6,15 @@ You may obtain a copy of the License at
 
     http://www.apache.org/licenses/LICENSE-2.0
 """
+
 from __future__ import annotations
 
-import importlib
 import sys
 from pathlib import Path
-from typing import List
-from unittest.mock import MagicMock, patch
-
-import pytest
+from unittest.mock import MagicMock
 
 from core.registry import PluginRegistry
 from providers.base import ProviderPlugin
-
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 
@@ -147,9 +143,125 @@ class TestErrors:
     def test_no_errors_on_clean_discovery(self):
         registry = PluginRegistry(PROJECT_ROOT).discover()
         # In a healthy install the registry should surface no errors.
-        assert registry.errors() == [] or all(
-            "duplicate" not in e for e in registry.errors()
+        assert registry.errors() == [] or all("duplicate" not in e for e in registry.errors())
+
+
+# ---------------------------------------------------------------------------
+# apply_pools_config
+# ---------------------------------------------------------------------------
+class TestApplyPoolsConfig:
+    def _write_pools(self, tmp_path: Path, content: str) -> Path:
+        path = tmp_path / "pools.yaml"
+        path.write_text(content)
+        return path
+
+    def test_overrides_endpoint_and_model(self, tmp_path):
+        registry = PluginRegistry(PROJECT_ROOT).discover()
+        path = self._write_pools(
+            tmp_path,
+            """
+            pools:
+              - name: Ollama-Mac
+                endpoint: http://1.2.3.4:9999
+                model: custom-model:1
+            """,
         )
+        registry.apply_pools_config(path)
+        p = registry.get("Ollama-Mac")
+        assert p is not None
+        assert p.default_endpoint == "http://1.2.3.4:9999"
+        assert p.model == "custom-model:1"
+
+    def test_expands_env_var_placeholder(self, tmp_path, monkeypatch):
+        monkeypatch.setenv("SURFACE_IP", "10.42.42.42")
+        registry = PluginRegistry(PROJECT_ROOT).discover()
+        path = self._write_pools(
+            tmp_path,
+            """
+            pools:
+              - name: Ollama-Surface
+                endpoint: http://${SURFACE_IP}:11434
+            """,
+        )
+        registry.apply_pools_config(path)
+        p = registry.get("Ollama-Surface")
+        assert p is not None
+        assert p.default_endpoint == "http://10.42.42.42:11434"
+
+    def test_picks_first_models_list_when_model_absent(self, tmp_path):
+        registry = PluginRegistry(PROJECT_ROOT).discover()
+        path = self._write_pools(
+            tmp_path,
+            """
+            pools:
+              - name: Google-Gemini
+                models: [gemini-2.5-pro, gemini-2.5-flash]
+            """,
+        )
+        registry.apply_pools_config(path)
+        p = registry.get("Google-Gemini")
+        assert p is not None
+        assert p.model == "gemini-2.5-pro"
+
+    def test_unknown_pool_records_error_but_continues(self, tmp_path):
+        registry = PluginRegistry(PROJECT_ROOT).discover()
+        path = self._write_pools(
+            tmp_path,
+            """
+            pools:
+              - name: DoesNotExist
+                model: x
+            """,
+        )
+        registry.apply_pools_config(path)
+        errs = " ".join(registry.errors())
+        assert "DoesNotExist" in errs
+
+    def test_missing_file_records_error(self, tmp_path):
+        registry = PluginRegistry(PROJECT_ROOT).discover()
+        registry.apply_pools_config(tmp_path / "absent.yaml")
+        assert any("not found" in e for e in registry.errors())
+
+    def test_env_key_resolves_to_api_key(self, tmp_path, monkeypatch):
+        monkeypatch.setenv("ANTHROPIC_API_KEY", "sk-ant-test")
+        registry = PluginRegistry(PROJECT_ROOT).discover()
+        path = self._write_pools(
+            tmp_path,
+            """
+            pools:
+              - name: Claude-API
+                env_key: ANTHROPIC_API_KEY
+            """,
+        )
+        registry.apply_pools_config(path)
+        p = registry.get("Claude-API")
+        assert p is not None
+        assert p.api_key == "sk-ant-test"
+
+    def test_metadata_overlay_merges(self, tmp_path):
+        registry = PluginRegistry(PROJECT_ROOT).discover()
+        path = self._write_pools(
+            tmp_path,
+            """
+            pools:
+              - name: OpenAI-API
+                region: us-west
+                tier: platform_api
+                notes: byok
+            """,
+        )
+        registry.apply_pools_config(path)
+        p = registry.get("OpenAI-API")
+        assert p is not None
+        meta = p.metadata
+        assert meta["region"] == "us-west"
+        assert meta["tier"] == "platform_api"
+        assert meta["notes"] == "byok"
+
+    def test_returns_self_for_chaining(self, tmp_path):
+        registry = PluginRegistry(PROJECT_ROOT).discover()
+        path = self._write_pools(tmp_path, "pools: []\n")
+        assert registry.apply_pools_config(path) is registry
 
 
 # ---------------------------------------------------------------------------

@@ -12,10 +12,11 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 """
+
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 
 class ProviderPlugin(ABC):
@@ -39,19 +40,19 @@ class ProviderPlugin(ABC):
     default_endpoint: str = ""
 
     #: Capability tags advertised by this pool. See ``config/capabilities.yaml``.
-    capabilities: List[str] = []
+    capabilities: list[str] = []
 
     #: Optional free-form metadata (tier, region, owner, ...).
-    metadata: Dict[str, Any] = {}
+    metadata: dict[str, Any] = {}
 
     def __init__(
         self,
-        name: Optional[str] = None,
-        endpoint: Optional[str] = None,
-        api_key: Optional[str] = None,
-        model: Optional[str] = None,
-        capabilities: Optional[List[str]] = None,
-        metadata: Optional[Dict[str, Any]] = None,
+        name: str | None = None,
+        endpoint: str | None = None,
+        api_key: str | None = None,
+        model: str | None = None,
+        capabilities: list[str] | None = None,
+        metadata: dict[str, Any] | None = None,
     ) -> None:
         if name is not None:
             self.name = name
@@ -61,8 +62,8 @@ class ProviderPlugin(ABC):
             self.capabilities = list(capabilities)
         if metadata is not None:
             self.metadata = dict(metadata)
-        self.api_key: Optional[str] = api_key
-        self.model: Optional[str] = model
+        self.api_key: str | None = api_key
+        self.model: str | None = model
 
     # ------------------------------------------------------------------
     # Required interface
@@ -70,9 +71,9 @@ class ProviderPlugin(ABC):
     @abstractmethod
     def chat(
         self,
-        messages: List[Dict[str, str]],
+        messages: list[dict[str, str]],
         **kwargs: Any,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Send a chat completion request.
 
         Implementations MUST return a dict shaped like::
@@ -87,7 +88,7 @@ class ProviderPlugin(ABC):
         """
 
     @abstractmethod
-    def check_quota(self) -> Dict[str, Any]:
+    def check_quota(self) -> dict[str, Any]:
         """Return remaining/total/tier quota information.
 
         Implementations return at minimum::
@@ -98,17 +99,17 @@ class ProviderPlugin(ABC):
         """
 
     @abstractmethod
-    def list_models(self) -> List[str]:
+    def list_models(self) -> list[str]:
         """List model identifiers available through this provider."""
 
     @abstractmethod
-    def health_check(self) -> Dict[str, Any]:
+    def health_check(self) -> dict[str, Any]:
         """Return a health snapshot ``{"ok": bool, "detail": str}``."""
 
     # ------------------------------------------------------------------
     # Convenience helpers
     # ------------------------------------------------------------------
-    def describes(self) -> Dict[str, Any]:
+    def describes(self) -> dict[str, Any]:
         """Return a serialisable description of this plugin."""
         return {
             "name": self.name,

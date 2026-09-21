@@ -12,18 +12,19 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 """
+
 from __future__ import annotations
 
 import threading
-import time
+from collections.abc import Callable, Iterable
 from pathlib import Path
-from typing import Callable, Iterable, Optional
 
 # ``watchdog`` is an optional runtime dependency: tests / static imports
 # should still work even if it isn't installed.
 try:
     from watchdog.events import FileSystemEventHandler  # type: ignore
     from watchdog.observers import Observer  # type: ignore
+
     _HAVE_WATCHDOG = True
 except Exception:  # pragma: no cover - import guard
     Observer = None  # type: ignore[assignment]
@@ -46,7 +47,7 @@ class _DebouncedHandler(FileSystemEventHandler):  # type: ignore[misc]
         self._targets = {Path(p).resolve() for p in targets}
         self._callback = callback
         self._debounce = debounce
-        self._timer: Optional[threading.Timer] = None
+        self._timer: threading.Timer | None = None
         self._lock = threading.Lock()
 
     # Watchdog event hooks -------------------------------------------------
@@ -98,7 +99,7 @@ class HotReloader:
         self.paths: list[Path] = [Path(p) for p in paths]
         self.callback = callback
         self.debounce_seconds = debounce_seconds
-        self._observer: Optional["Observer"] = None  # type: ignore[type-arg]
+        self._observer: Observer | None = None  # type: ignore[type-arg]
 
     # ------------------------------------------------------------------
     # Lifecycle

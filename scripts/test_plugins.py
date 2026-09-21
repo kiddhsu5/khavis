@@ -25,13 +25,13 @@ verifies that:
 Exit code is non-zero if any plugin fails to load or has a malformed
 health/quota response.
 """
+
 from __future__ import annotations
 
 import json
 import sys
 from pathlib import Path
-from typing import Any, Dict, List
-
+from typing import Any
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 if str(PROJECT_ROOT) not in sys.path:
@@ -44,8 +44,8 @@ from providers.base import ProviderPlugin  # noqa: E402
 # ---------------------------------------------------------------------------
 # Validation helpers
 # ---------------------------------------------------------------------------
-def _check_dict_shape(name: str, value: Any, required: List[str]) -> List[str]:
-    errors: List[str] = []
+def _check_dict_shape(name: str, value: Any, required: list[str]) -> list[str]:
+    errors: list[str] = []
     if not isinstance(value, dict):
         errors.append(f"{name}: expected dict, got {type(value).__name__}")
         return errors
@@ -55,8 +55,8 @@ def _check_dict_shape(name: str, value: Any, required: List[str]) -> List[str]:
     return errors
 
 
-def _validate_plugin(plugin: ProviderPlugin) -> List[str]:
-    errors: List[str] = []
+def _validate_plugin(plugin: ProviderPlugin) -> list[str]:
+    errors: list[str] = []
     if not plugin.name:
         errors.append(f"{type(plugin).__name__}: missing 'name'")
     if not plugin.provider_id:
@@ -69,9 +69,7 @@ def _validate_plugin(plugin: ProviderPlugin) -> List[str]:
         errors.append(f"{plugin.name}.health_check() raised: {exc!r}")
         health = None
     if health is not None:
-        errors.extend(
-            _check_dict_shape(f"{plugin.name}.health_check", health, ["ok", "detail"])
-        )
+        errors.extend(_check_dict_shape(f"{plugin.name}.health_check", health, ["ok", "detail"]))
         if isinstance(health, dict) and not isinstance(health.get("ok"), bool):
             errors.append(f"{plugin.name}.health_check['ok'] must be bool")
 
@@ -83,9 +81,7 @@ def _validate_plugin(plugin: ProviderPlugin) -> List[str]:
         quota = None
     if quota is not None:
         errors.extend(
-            _check_dict_shape(
-                f"{plugin.name}.check_quota", quota, ["remaining", "total", "tier"]
-            )
+            _check_dict_shape(f"{plugin.name}.check_quota", quota, ["remaining", "total", "tier"])
         )
 
     # list_models -------------------------------------------------------
@@ -115,8 +111,8 @@ def main() -> int:
         for err in summary["errors"]:
             print(f"  ! {err}")
 
-    all_errors: List[str] = list(summary["errors"])
-    descriptions: List[Dict[str, Any]] = []
+    all_errors: list[str] = list(summary["errors"])
+    descriptions: list[dict[str, Any]] = []
     for plugin in registry.all():
         all_errors.extend(_validate_plugin(plugin))
         descriptions.append(plugin.describes())

@@ -6,19 +6,18 @@ You may obtain a copy of the License at
 
     http://www.apache.org/licenses/LICENSE-2.0
 """
+
 from __future__ import annotations
 
 import random
 from pathlib import Path
-from typing import Any, Dict, List
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 
 import pytest
 
 from core.capability_router import CapabilityEntry, CapabilityRouter
 from core.registry import PluginRegistry
 from providers.base import ProviderPlugin
-
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 CONFIG_DIR = PROJECT_ROOT / "config"
@@ -145,9 +144,7 @@ class TestRouting:
         assert a1 is not None and a2 is not None
         assert a1.name == a2.name
 
-    def test_strategy_round_robin_distinguishes_capabilities(
-        self, loaded_router: CapabilityRouter
-    ):
+    def test_strategy_round_robin_distinguishes_capabilities(self, loaded_router: CapabilityRouter):
         a = loaded_router.select("中文", strategy="round_robin")
         b = loaded_router.select("Embedding", strategy="round_robin")
         # Both should resolve but may pick different pools.
@@ -164,9 +161,7 @@ class TestWeightedChoice:
         items = ["a", "b"]
         rng = random.Random(42)
         # weight heavily toward "a" → should pick "a" almost always.
-        results = [
-            _weighted_choice(items, [1000.0, 1.0], rng) for _ in range(200)
-        ]
+        results = [_weighted_choice(items, [1000.0, 1.0], rng) for _ in range(200)]
         assert results.count("a") > 150
 
     def test_weighted_choice_zero_total_falls_back_to_uniform(self):

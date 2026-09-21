@@ -12,10 +12,11 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 """
+
 from __future__ import annotations
 
 import os
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from .base import ProviderPlugin
 
@@ -37,11 +38,11 @@ class MiniMaxPlugin(ProviderPlugin):
 
     def __init__(
         self,
-        endpoint: Optional[str] = None,
-        api_key: Optional[str] = None,
-        model: Optional[str] = None,
-        capabilities: Optional[List[str]] = None,
-        metadata: Optional[Dict[str, Any]] = None,
+        endpoint: str | None = None,
+        api_key: str | None = None,
+        model: str | None = None,
+        capabilities: list[str] | None = None,
+        metadata: dict[str, Any] | None = None,
     ) -> None:
         super().__init__(
             name="MiniMax-M3",
@@ -69,7 +70,7 @@ class MiniMaxPlugin(ProviderPlugin):
     # ------------------------------------------------------------------
     # ProviderPlugin interface
     # ------------------------------------------------------------------
-    def chat(self, messages: List[Dict[str, str]], **kwargs: Any) -> Dict[str, Any]:
+    def chat(self, messages: list[dict[str, str]], **kwargs: Any) -> dict[str, Any]:
         client = self._get_client()
         model = kwargs.pop("model", self.model)
         response = client.chat.completions.create(
@@ -79,7 +80,7 @@ class MiniMaxPlugin(ProviderPlugin):
         )
         return self._normalize(response)
 
-    def check_quota(self) -> Dict[str, Any]:
+    def check_quota(self) -> dict[str, Any]:
         return {
             "remaining": None,
             "total": None,
@@ -88,10 +89,10 @@ class MiniMaxPlugin(ProviderPlugin):
             "note": "Quota endpoint not exposed by MiniMax public API.",
         }
 
-    def list_models(self) -> List[str]:
+    def list_models(self) -> list[str]:
         return [self.model or DEFAULT_MODEL]
 
-    def health_check(self) -> Dict[str, Any]:
+    def health_check(self) -> dict[str, Any]:
         return {
             "ok": bool(self.api_key) and bool(self.default_endpoint),
             "detail": (
@@ -103,7 +104,7 @@ class MiniMaxPlugin(ProviderPlugin):
     # ------------------------------------------------------------------
     # Helpers
     # ------------------------------------------------------------------
-    def _normalize(self, response: Any) -> Dict[str, Any]:
+    def _normalize(self, response: Any) -> dict[str, Any]:
         """Coerce an OpenAI SDK response object into a plain dict."""
         try:
             data = response.model_dump()  # type: ignore[attr-defined]

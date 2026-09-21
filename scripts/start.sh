@@ -32,12 +32,16 @@ root = Path(sys.argv[1]).resolve()
 sys.path.insert(0, str(root))
 
 from core.capability_router import CapabilityRouter
+from core.env import load_env
 from core.hot_reload import HotReloader
 from core.registry import PluginRegistry
+
+load_env()
 
 cfg_dir = root / "config"
 
 registry = PluginRegistry(root).discover()
+registry.apply_pools_config(cfg_dir / "pools.yaml")
 summary = registry.summary()
 print(f"\n[registry] discovered {summary['count']} plugin pools")
 for name in summary["names"]:
@@ -69,6 +73,7 @@ def reload(path: Path) -> None:
     print(f"\n[hot_reload] config changed: {path.name}; reloading…")
     try:
         registry.discover()
+        registry.apply_pools_config(cfg_dir / "pools.yaml")
         router.load_capabilities(cfg_dir / "capabilities.yaml")
         print("[hot_reload] reload ok")
     except Exception as exc:

@@ -6,21 +6,18 @@ You may obtain a copy of the License at
 
     http://www.apache.org/licenses/LICENSE-2.0
 """
+
 from __future__ import annotations
 
-import threading
 import time
 from pathlib import Path
-from typing import List
+from typing import Any
 from unittest.mock import MagicMock, patch
-
-import pytest
 
 from core.hot_reload import (
     DEFAULT_DEBOUNCE_SECONDS,
     HotReloader,
     _DebouncedHandler,
-    _HAVE_WATCHDOG,
 )
 
 
@@ -62,7 +59,7 @@ class TestDebouncedHandler:
         return ev
 
     def test_ignores_directories(self, tmp_path):
-        seen: List[Path] = []
+        seen: list[Path] = []
         handler = _DebouncedHandler([tmp_path / "x.yaml"], seen.append, 0.05)
         handler._maybe_trigger(self._event(tmp_path, is_directory=True))
         # No timer should be scheduled.
@@ -74,7 +71,7 @@ class TestDebouncedHandler:
         target.write_text("a")
         other.write_text("b")
 
-        seen: List[Path] = []
+        seen: list[Path] = []
         handler = _DebouncedHandler([target], seen.append, 0.05)
         handler._maybe_trigger(self._event(other))
         assert handler._timer is None
@@ -82,7 +79,7 @@ class TestDebouncedHandler:
     def test_fires_callback_after_debounce(self, tmp_path):
         target = tmp_path / "pools.yaml"
         target.write_text("a")
-        seen: List[Path] = []
+        seen: list[Path] = []
         handler = _DebouncedHandler([target], seen.append, 0.05)
         handler._maybe_trigger(self._event(target))
         # Wait for the timer to fire.
@@ -92,7 +89,7 @@ class TestDebouncedHandler:
     def test_coalesces_bursts(self, tmp_path):
         target = tmp_path / "pools.yaml"
         target.write_text("a")
-        seen: List[Path] = []
+        seen: list[Path] = []
         handler = _DebouncedHandler([target], seen.append, 0.1)
         # Three rapid triggers → only the last should fire.
         handler._maybe_trigger(self._event(target))
@@ -105,7 +102,9 @@ class TestDebouncedHandler:
     def test_callback_exceptions_are_swallowed(self, tmp_path, capsys):
         target = tmp_path / "pools.yaml"
         target.write_text("a")
-        handler = _DebouncedHandler([target], lambda p: (_ for _ in ()).throw(RuntimeError("boom")), 0.05)
+        handler = _DebouncedHandler(
+            [target], lambda p: (_ for _ in ()).throw(RuntimeError("boom")), 0.05
+        )
         # Should not raise.
         handler._fire(target)
         out = capsys.readouterr().out
@@ -122,7 +121,7 @@ class TestWithStubObserver:
 
         class StubObserver:
             def __init__(self):
-                self.scheduled: List[Any] = []
+                self.scheduled: list[Any] = []
                 self.started = False
                 self.stopped = False
 
@@ -167,7 +166,7 @@ class TestWithStubObserver:
         self._setup_stub_observer(monkeypatch)
         target = tmp_path / "pools.yaml"
         target.write_text("a: 1\n")
-        seen: List[Path] = []
+        seen: list[Path] = []
         reloader = HotReloader([target], seen.append, debounce_seconds=0.05)
         reloader.start()
         try:

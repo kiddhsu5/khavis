@@ -244,6 +244,30 @@ default on Windows / Linux is already `127.0.0.1` — set
 `OLLAMA_HOST=0.0.0.0` in the Surface's environment to expose it on the
 LAN).
 
+#### One-shot Surface setup (Windows)
+
+`scripts/setup_surface_windows.ps1` does all four steps idempotently
+(set `OLLAMA_HOST=0.0.0.0` system env, open TCP 11434 in Windows
+Firewall, register Ollama to auto-start, pre-pull the default model).
+Run **as Administrator**:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\setup_surface_windows.ps1
+
+# Override the default model:
+powershell -ExecutionPolicy Bypass -File scripts\setup_surface_windows.ps1 -Model gemma4:e2b
+
+# Skip the pre-pull:
+powershell -ExecutionPolicy Bypass -File scripts\setup_surface_windows.ps1 -SkipModelPull
+
+# Tear it all back down:
+powershell -ExecutionPolicy Bypass -File scripts\setup_surface_windows.ps1 -Uninstall
+```
+
+The script is safe to re-run. It detects an existing Ollama Windows
+service and restarts it to pick up the new env var; otherwise it
+registers a startup scheduled task that runs `ollama serve`.
+
 ### Recommended model pairing
 
 | Host | Recommended model | Why |
