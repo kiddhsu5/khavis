@@ -4,18 +4,18 @@ Each test stubs out pool resolution + chat so we can prove that
 failure of the primary pool does not block the fallback from running
 in parallel.
 """
+
 from __future__ import annotations
 
 import threading
 import time
-from typing import Any, Dict
+from typing import Any
 from unittest.mock import MagicMock
 
 import pytest
 
-from agents.agent_factory import _PoolRunnable, _AGENT_FACTORY, set_agent_factory
+from agents.agent_factory import AgentFactory, _PoolRunnable
 from agents.roles import Role
-from agents.agent_factory import AgentFactory
 
 
 def _make_role() -> Role:
@@ -65,9 +65,7 @@ def _make_runnable(
     fallback_chain: list[str],
 ) -> _PoolRunnable:
     """Build a runnable that captures the factory directly."""
-    return _PoolRunnable(
-        pool=primary, role=role, fallback_chain=fallback_chain, factory=factory
-    )
+    return _PoolRunnable(pool=primary, role=role, fallback_chain=fallback_chain, factory=factory)
 
 
 class TestPoolRunnableParallel:
@@ -102,7 +100,7 @@ class TestPoolRunnableParallel:
         """When the primary pool sleeps, fallbacks should NOT wait."""
         gate = threading.Event()
 
-        def slow_primary(*_a: Any, **_kw: Any) -> Dict[str, Any]:
+        def slow_primary(*_a: Any, **_kw: Any) -> dict[str, Any]:
             gate.wait(timeout=2.0)
             raise RuntimeError("primary timed out")
 

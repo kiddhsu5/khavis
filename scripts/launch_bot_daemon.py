@@ -19,13 +19,13 @@ After launch:
     tail -f /tmp/bot.log
     python scripts/launch_bot_daemon.py --stop             # tear down
 """
+
 from __future__ import annotations
 
 import argparse
 import os
 import sys
 from pathlib import Path
-
 
 DEFAULT_PYTHON = "/opt/homebrew/bin/python3.12"
 DEFAULT_PROJECT_ROOT = Path(__file__).resolve().parent.parent
@@ -102,9 +102,7 @@ def launch(
             key, _, value = line.partition("=")
             os.environ[key.strip()] = value.strip()
     else:
-        print(
-            f"[launcher] WARNING: {env_file} not found; bot will exit", flush=True
-        )
+        print(f"[launcher] WARNING: {env_file} not found; bot will exit", flush=True)
         os._exit(1)
 
     os.chdir(str(project_root))
