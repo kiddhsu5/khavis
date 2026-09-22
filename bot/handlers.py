@@ -11,12 +11,15 @@ from .models import BackendName, DispatchEnvelope, IncomingMessage
 HELP_TEXT = """\
 *llm-router dispatch bot*
 
+Just type your prompt — no command needed. The bot fans it out to the
+configured backends and reports back.
+
 Commands:
   /start \\- welcome + allowlist check
   /help \\- this message
   /status \\- per\\-backend health snapshot
   /pools \\- list llm\\-router pools and capabilities
-  /run \\<prompt\\> \\- fan\\-out to claude, codex, llm\\-router
+  /run \\<prompt\\> \\- explicit fan\\-out (same as plain text)
   /run \\-\\-only claude,codex \\<prompt\\> \\- subset
   /run \\-\\-capability code \\<prompt\\> \\- hint for the gateway
 
@@ -35,16 +38,31 @@ explicitly opts in via env."""
 
 
 def parse_run_command(text: str) -> tuple[list[BackendName] | None, str | None, str]:
-    """Parse ``/run [--only X,Y] [--capability Z] <prompt>``.
+    """Parse ``/run [--only X,Y] [--capability Z] <prompt>`` **or** a bare
+    natural-language prompt.
 
     Returns ``(only, capability, prompt)``.  ``only`` is None when no
-    ``--only`` flag was passed (means "all backends").  ``capability``
-    is None when not specified.  ``prompt`` is the remainder after
-    stripping flags.
+    ``--only`` flag was passed (means "fan out to the default set" —
+    see ``bot.dispatch.default_backend_order()``).  ``capability`` is
+    None when not specified.
+
+    When the text does not start with ``/run``, the **entire** message
+    is treated as the prompt and both flags default to None. This is
+    the natural-language path: just typing "write a Python function to
+    average a list" dispatches to the backends without needing ``/run``.
+
+    Empty / whitespace-only input returns ``("", None, None)`` so the
+    caller can show a usage hint.
     """
-    parts = shlex.split(text)
-    if not parts or parts[0] != "/run":
+    raw = (text or "").strip()
+    if not raw:
         return None, None, ""
+    parts = shlex.split(raw)
+    if not parts:
+        return None, None, ""
+    if parts[0].lower() != "/run":
+        # Natural-language fallback: whole message is the prompt.
+        return None, None, raw
     args = parts[1:]
     only: list[BackendName] | None = None
     capability: str | None = None
@@ -168,7 +186,8 @@ async def handle_run(msg: IncomingMessage, deps: HandlerDeps) -> DispatchEnvelop
     if not prompt:
         await api.send_message(
             msg.chat_id,
-            "usage: /run <prompt>",
+            "Send any prompt and I'll fan it out to the backends. "
+            "Or: /run [--only X,Y] [--capability Z] <prompt>",
             parse_mode=None,
             reply_to=msg.message_id,
         )
@@ -193,10 +212,28 @@ COMMANDS: dict[str, CommandHandler] = {
 
 
 def route_command(text: str) -> CommandHandler | None:
-    """Return the handler for ``text``'s leading command, or None."""
-    head = (text or "").strip().split(maxsplit=1)[0].lower()
+    """Return the handler for ``text``'s leading command.
+
+    Dispatch rules:
+
+    * Known command (``/start``, ``/help``, ``/status``, ``/pools``,
+      ``/run``) → that command's handler.
+    * Unknown ``/something`` → ``None`` (caller replies with a usage
+      hint). Distinguishing this from natural-language matters: typos
+      like ``/statu`` shouldn't silently trigger a fan-out.
+    * Anything else (no leading slash) → ``handle_run``. The whole
+      message is the prompt — natural-language dispatch.
+    """
+    raw = (text or "").strip()
+    if not raw:
+        return None
+    head = raw.split(maxsplit=1)[0].lower()
     if head in COMMANDS:
         return COMMANDS[head]
     if head == "/run":
         return handle_run
-    return None
+    if head.startswith("/"):
+        # Unknown slash-command — don't dispatch, let caller show usage.
+        return None
+    # Natural language: dispatch to backends.
+    return handle_run
