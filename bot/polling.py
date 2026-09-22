@@ -40,56 +40,71 @@ async def long_poll_loop(
     url = _make_get_updates_url(secrets.bot_token)
     offset: int | None = None
     backoff = 1.0
-    async with httpx.AsyncClient(timeout=poll_timeout_s + 5) as client:
-        while not stop.is_set():
-            params: dict[str, int | str] = {
-                "timeout": poll_timeout_s,
-                "allowed_updates": '["message"]',
-            }
-            if offset is not None:
-                params["offset"] = offset
-            try:
+    while not stop.is_set():
+        params: dict[str, int | str] = {
+            "timeout": poll_timeout_s,
+            "allowed_updates": '["message"]',
+        }
+        if offset is not None:
+            params["offset"] = offset
+        # A fresh client per request + ``Connection: close`` so Telegram
+        # never sees a reused connection from a previous long-poll that
+        # was cut short. Otherwise the next ``getUpdates`` on the same
+        # TCP socket can return ``409 Conflict: terminated by other
+        # getUpdates request`` even though *we* are the only bot
+        # instance — the previous request is still counted as pending
+        # server-side.
+        try:
+            async with httpx.AsyncClient(
+                timeout=httpx.Timeout(
+                    connect=10.0,
+                    read=float(poll_timeout_s) + 5.0,
+                    write=10.0,
+                    pool=10.0,
+                ),
+                headers={"Connection": "close"},
+            ) as client:
                 r = await client.get(url, params=params)
-            except (TimeoutError, httpx.HTTPError) as exc:
-                # Network glitch — back off and retry.
-                wait = min(backoff, 30)
-                await _sleep_or_stop(stop, wait)
-                backoff = min(backoff * 2, 30)
-                _log(f"getUpdates error: {exc!r}; sleeping {wait}s")
+        except (TimeoutError, httpx.HTTPError) as exc:
+            # Network glitch — back off and retry.
+            wait = min(backoff, 30)
+            await _sleep_or_stop(stop, wait)
+            backoff = min(backoff * 2, 30)
+            _log(f"getUpdates error: {exc!r}; sleeping {wait}s")
+            continue
+        if r.status_code != 200:
+            wait = min(backoff, 30)
+            await _sleep_or_stop(stop, wait)
+            backoff = min(backoff * 2, 30)
+            _log(f"getUpdates HTTP {r.status_code}; sleeping {wait}s")
+            continue
+        backoff = 1.0  # reset on success
+        try:
+            data = r.json()
+        except ValueError:
+            continue
+        if not data.get("ok"):
+            _log(f"getUpdates payload error: {data}")
+            continue
+        for upd in data.get("result") or []:
+            offset = max(offset or 0, int(upd.get("update_id", 0)) + 1)
+            msg = upd.get("message") or upd.get("edited_message") or {}
+            text = msg.get("text") or ""
+            chat = msg.get("chat") or {}
+            if not chat or not text:
                 continue
-            if r.status_code != 200:
-                wait = min(backoff, 30)
-                await _sleep_or_stop(stop, wait)
-                backoff = min(backoff * 2, 30)
-                _log(f"getUpdates HTTP {r.status_code}; sleeping {wait}s")
-                continue
-            backoff = 1.0  # reset on success
+            incoming = IncomingMessage(
+                update_id=int(upd.get("update_id", 0)),
+                message_id=msg.get("message_id"),
+                chat_id=int(chat.get("id", 0)),
+                user_id=(msg.get("from") or {}).get("id"),
+                text=text,
+                is_command=text.startswith("/"),
+            )
             try:
-                data = r.json()
-            except ValueError:
-                continue
-            if not data.get("ok"):
-                _log(f"getUpdates payload error: {data}")
-                continue
-            for upd in data.get("result") or []:
-                offset = max(offset or 0, int(upd.get("update_id", 0)) + 1)
-                msg = upd.get("message") or upd.get("edited_message") or {}
-                text = msg.get("text") or ""
-                chat = msg.get("chat") or {}
-                if not chat or not text:
-                    continue
-                incoming = IncomingMessage(
-                    update_id=int(upd.get("update_id", 0)),
-                    message_id=msg.get("message_id"),
-                    chat_id=int(chat.get("id", 0)),
-                    user_id=(msg.get("from") or {}).get("id"),
-                    text=text,
-                    is_command=text.startswith("/"),
-                )
-                try:
-                    await handler(incoming)
-                except Exception as exc:  # noqa: BLE001
-                    _log(f"handler error: {exc!r}")
+                await handler(incoming)
+            except Exception as exc:  # noqa: BLE001
+                _log(f"handler error: {exc!r}")
 
 
 def _log(msg: str) -> None:
