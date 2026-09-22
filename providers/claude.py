@@ -102,7 +102,11 @@ class AnthropicPlugin(ProviderPlugin):
         }
         if system_text is not None:
             create_kwargs["system"] = system_text
-        create_kwargs.update(kwargs)
+        # Anthropic SDK 1.7.0 removed ``temperature`` from messages.create.
+        # The role's ``temperature`` hint is dropped here — operators who
+        # need per-request temperature should configure it on the
+        # account / workspace level.
+        create_kwargs.update({k: v for k, v in kwargs.items() if k != "temperature"})
 
         response = client.messages.create(**create_kwargs)
         return self._normalize(response)
