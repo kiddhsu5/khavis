@@ -13,6 +13,8 @@ class IncomingMessage(BaseModel):
     """A chat message we just received (from webhook OR polling)."""
 
     update_id: int
+    message_id: int | None = None  # Telegram message_id (for reply_to)
+    chat_id: int
     chat_id: int
     user_id: int | None = None
     text: str

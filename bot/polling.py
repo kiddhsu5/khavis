@@ -80,6 +80,7 @@ async def long_poll_loop(
                     continue
                 incoming = IncomingMessage(
                     update_id=int(upd.get("update_id", 0)),
+                    message_id=msg.get("message_id"),
                     chat_id=int(chat.get("id", 0)),
                     user_id=(msg.get("from") or {}).get("id"),
                     text=text,

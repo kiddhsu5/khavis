@@ -107,7 +107,7 @@ async def handle_start(msg: IncomingMessage, deps: HandlerDeps) -> None:
         msg.chat_id,
         f"👋 Welcome! Send /help for usage. (chat_id={msg.chat_id})",
         parse_mode=None,
-        reply_to=msg.update_id,
+        reply_to=msg.message_id,
     )
 
 
@@ -117,7 +117,7 @@ async def handle_help(msg: IncomingMessage, deps: HandlerDeps) -> None:
     api: TelegramAPI = deps.telegram  # type: ignore[assignment]
     if not is_allowed(msg.chat_id, deps.allowlist):
         return
-    await api.send_message(msg.chat_id, HELP_TEXT, parse_mode=None, reply_to=msg.update_id)
+    await api.send_message(msg.chat_id, HELP_TEXT, parse_mode=None, reply_to=msg.message_id)
 
 
 async def handle_status(msg: IncomingMessage, deps: HandlerDeps) -> None:
@@ -137,7 +137,7 @@ async def handle_status(msg: IncomingMessage, deps: HandlerDeps) -> None:
             lines.append(f"{check} `{name}` \\- {detail}")
         except Exception as exc:  # noqa: BLE001
             lines.append(f"❌ `{name}` \\- error: {exc!r}")
-    await api.send_message(msg.chat_id, "\n".join(lines), parse_mode=None, reply_to=msg.update_id)
+    await api.send_message(msg.chat_id, "\n".join(lines), parse_mode=None, reply_to=msg.message_id)
 
 
 async def handle_pools(msg: IncomingMessage, deps: HandlerDeps) -> None:
@@ -153,7 +153,7 @@ async def handle_pools(msg: IncomingMessage, deps: HandlerDeps) -> None:
     for name, caps in deps.pools:
         cap_str = TelegramAPI.escape_markdown_v2(", ".join(caps))
         lines.append(f"• `{TelegramAPI.escape_markdown_v2(name)}` — {cap_str}")
-    await api.send_message(msg.chat_id, "\n".join(lines), parse_mode=None, reply_to=msg.update_id)
+    await api.send_message(msg.chat_id, "\n".join(lines), parse_mode=None, reply_to=msg.message_id)
 
 
 async def handle_run(msg: IncomingMessage, deps: HandlerDeps) -> DispatchEnvelope | None:
@@ -168,7 +168,7 @@ async def handle_run(msg: IncomingMessage, deps: HandlerDeps) -> DispatchEnvelop
             msg.chat_id,
             "usage: /run <prompt>",
             parse_mode=None,
-            reply_to=msg.update_id,
+            reply_to=msg.message_id,
         )
         return None
     # The actual fan-out happens in dispatch.dispatch(); this handler
