@@ -3,12 +3,40 @@
 from __future__ import annotations
 
 import asyncio
+import os
 from collections.abc import AsyncIterator, Awaitable, Callable, Iterable
 
 from .backends.base import Backend
 from .models import BackendName, BackendResult, DispatchEnvelope, DispatchReport
 
-DEFAULT_BACKEND_ORDER: tuple[BackendName, ...] = ("claude", "codex", "llm-router")
+_ALL_BACKENDS: tuple[BackendName, ...] = ("claude", "codex", "llm-router")
+
+# Kept as a module-level constant for backward compat with tests and any
+# caller that imports ``DEFAULT_BACKEND_ORDER``. Prefer
+# ``default_backend_order()`` — it honours the ``BOT_BACKENDS`` env var.
+DEFAULT_BACKEND_ORDER: tuple[BackendName, ...] = _ALL_BACKENDS
+
+
+def default_backend_order() -> tuple[BackendName, ...]:
+    """Backends ``/run`` fans out to when no ``--only`` flag is given.
+
+    Controlled by the ``BOT_BACKENDS`` env var (comma-separated list).
+    Useful to temporarily disable a backend — e.g. ``claude`` before its
+    OAuth login is done — without editing the code. Examples::
+
+        BOT_BACKENDS=codex,llm-router   # skip claude
+        BOT_BACKENDS=                    # (empty) = all three
+
+    An unrecognised name is silently ignored. If *nothing* in the env
+    var matches a known backend we fall back to all three rather than
+    silently routing to zero backends.
+    """
+    raw = os.environ.get("BOT_BACKENDS", "").strip()
+    if not raw:
+        return _ALL_BACKENDS
+    wanted = {p.strip() for p in raw.split(",") if p.strip()}
+    filtered = tuple(b for b in _ALL_BACKENDS if b in wanted)
+    return filtered or _ALL_BACKENDS
 
 
 # Streaming callback: receives (newly_completed_result, all_results_so_far).
@@ -29,7 +57,7 @@ class DispatchRouter:
     def _resolve(self, envelope: DispatchEnvelope) -> list[Backend]:
         wanted = envelope.only
         if wanted is None:
-            wanted = list(DEFAULT_BACKEND_ORDER)
+            wanted = list(default_backend_order())
         return [self._backends[name] for name in wanted if name in self._backends]
 
     async def dispatch(self, envelope: DispatchEnvelope) -> DispatchReport:
