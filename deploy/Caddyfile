@@ -1,20 +1,30 @@
 # Caddyfile for llm-router-bot.
 #
-# Mount the existing LE cert at /etc/caddy/certs/<domain>/ if you have
-# one. Otherwise drop the `tls` block and Caddy will request a fresh
-# cert via Let's Encrypt automatically (requires port 80/443 reachable
-# from the public internet during the first request).
+# Behaviour:
+#   - With ``deploy/certs/bot.kiddhsu.taipei/{fullchain,privkey}.pem`` mounted
+#     into the container at /etc/caddy/certs/bot.kiddhsu.taipei/: Caddy
+#     serves the existing cert.
+#   - Without the mount: Caddy auto-issues via ACME HTTP-01. Requires
+#     ports 80 + 443 to be reachable from the public internet during
+#     the first request.
+#
+# For Cloudflare-fronted tenants or on VPS providers that block inbound
+# 80/443, add a Cloudflare DNS module and switch ``on-demand`` to
+# DNS-01 — see https://caddyserver.com/docs/automatic-https#on-demand.
 
 {
     email admin@bot.kiddhsu.taipei
 }
 
-bot.kiddhsu.taipei, :443 {
+# On-demand TLS requires this block to be reachable from Let's Encrypt.
+bot.kiddhsu.taipei {
     encode zstd gzip
     reverse_proxy 127.0.0.1:8080
 
-    tls /etc/caddy/certs/bot.kiddhsu.taipei/fullchain.pem \
-        /etc/caddy/certs/bot.kiddhsu.taipei/privkey.pem
+    @cert_files {
+        expression {env.CERT_FILES_PRESENT}
+    }
+    tls @cert_files /etc/caddy/certs/bot.kiddhsu.taipei/fullchain.pem /etc/caddy/certs/bot.kiddhsu.taipei/privkey.pem
 
     log {
         output stdout
@@ -22,7 +32,7 @@ bot.kiddhsu.taipei, :443 {
     }
 }
 
-# HTTP→HTTPS redirect (so webhook registration that hits :80 still finds us).
+# HTTP→HTTPS redirect.
 :80 {
     redir https://{host}{uri} permanent
 }

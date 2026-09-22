@@ -1,35 +1,85 @@
 #!/usr/bin/env bash
-# Aliyun ECS deploy helper for llm-router-bot.
+# Aliyun ECS / Lighthouse deploy helper for llm-router-bot.
 #
-# Prerequisites:
-#   - aliyun CLI configured (`aliyun configure`)
-#   - container registry (CR) namespace created
-#   - ECS instance reachable via SSH or in same VPC as registry
+# Prerequisites (run once):
+#   - aliyun CLI installed: `aliyun configure` with your AccessKey
+#   - Container Registry (CR) namespace created in the
+#     registry.console.aliyun.com console
+#   - ECS / Lighthouse instance reachable via SSH
+#     (set ALIYUN_ECS_HOST or pass --host)
+#   - Domain ``bot.kiddhsu.taipei`` resolves to the ECS public IP
+#     (add an A record in your DNS provider)
+#   - Inbound 80/443 open in the security group (for ACME HTTP-01)
+#
+# Usage:
+#   ALIYUN_ECS_HOST=root@<public-ip> bash scripts/deploy-aliyun.sh
+#
+# Idempotent: re-run after each llm-router-bot release. The remote
+# workflow is `git pull → docker pull → docker compose up -d`.
 
 set -euo pipefail
 
 REGION="${ALIYUN_REGION:-cn-hangzhou}"
 NAMESPACE="${ALIYUN_CR_NAMESPACE:-llm-router}"
 IMAGE_TAG="${IMAGE_TAG:-latest}"
+ALIYUN_ECS_HOST="${ALIYUN_ECS_HOST:-}"
 
-echo "== Building image =="
+if [[ -z "$ALIYUN_ECS_HOST" ]]; then
+    cat >&2 <<EOF
+ERROR: ALIYUN_ECS_HOST is not set. Example:
+  ALIYUN_ECS_HOST=root@1.2.3.4 bash scripts/deploy-aliyun.sh
+
+If your SSH key needs a different user or port, encode them in the
+host string: 'user@host' or 'user@host:2222'.
+EOF
+    exit 2
+fi
+
+# ---------------------------------------------------------------------------
+# Step 1: build the image locally
+# ---------------------------------------------------------------------------
+echo "== building image (tag=$IMAGE_TAG) =="
 docker build -t "$NAMESPACE/llm-router-bot:$IMAGE_TAG" -f deploy/Dockerfile .
 
-echo "== Pushing to Aliyun CR =="
-# Tag + push to the registry. Replace <registry-id> with your actual CR endpoint.
-REGISTRY="${ALIYUN_REGISTRY_ID:-${NAMESPACE}.registry.aliyuncs.com}"
+# ---------------------------------------------------------------------------
+# Step 2: tag + push to Aliyun Container Registry (ACR)
+# ---------------------------------------------------------------------------
+REGISTRY="${ALIYUN_REGISTRY:-${NAMESPACE}.registry.aliyuncs.com}"
+echo "== pushing to ACR (${REGISTRY}/${NAMESPACE}/llm-router-bot:$IMAGE_TAG) =="
 docker tag "$NAMESPACE/llm-router-bot:$IMAGE_TAG" "$REGISTRY/$NAMESPACE/llm-router-bot:$IMAGE_TAG"
 docker push "$REGISTRY/$NAMESPACE/llm-router-bot:$IMAGE_TAG"
 
-echo "== Pulling on ECS + restarting =="
-ALIYUN_ECS_HOST="${ALIYUN_ECS_HOST:-llm-router-bot}"
+# ---------------------------------------------------------------------------
+# Step 3: SSH into the ECS instance and roll the deployment
+# ---------------------------------------------------------------------------
+echo "== rolling out on $ALIYUN_ECS_HOST =="
 ssh "$ALIYUN_ECS_HOST" <<EOF
-  set -eu
-  cd ~/llm-router-bot || git clone https://github.com/kiddhsu5/llm-router.git llm-router-bot
-  cd llm-router-bot
-  git pull --ff-only
-  docker pull $REGISTRY/$NAMESPACE/llm-router-bot:$IMAGE_TAG
-  docker compose -f deploy/docker-compose.yml --env-file .env up -d
+    set -eu
+    cd ~/llm-router-bot 2>/dev/null || {
+        echo "first deploy: cloning repo"
+        git clone https://github.com/kiddhsu5/llm-router.git ~/llm-router-bot
+        cd ~/llm-router-bot
+    }
+    git pull --ff-only
+
+    # Pull the new image.
+    docker pull ${REGISTRY}/${NAMESPACE}/llm-router-bot:${IMAGE_TAG}
+
+    # Build / write .env on the server. The operator ships their own
+    # .env out-of-band (e.g. via scp, ansible-vault, secrets manager).
+    # Here we just refuse to start if .env is missing.
+    if [ ! -f .env ]; then
+        echo "ERROR: .env not found on the remote. Copy it first:" >&2
+        echo "  scp .env ${ALIYUN_ECS_HOST}:~/llm-router-bot/.env" >&2
+        exit 3
+    fi
+
+    cd ~/llm-router-bot
+    docker compose -f deploy/docker-compose.yml --env-file .env up -d
+    sleep 3
+    curl -fsS http://127.0.0.1:8080/healthz && echo " → healthy"
 EOF
 
-echo "Done."
+echo
+echo "Done. Set webhook with:"
+echo "  curl \"https://api.telegram.org/bot\${BOT_TOKEN}/setWebhook?url=https://bot.kiddhsu.taipei/webhook\""
