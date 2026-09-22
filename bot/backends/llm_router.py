@@ -6,12 +6,12 @@ final synthesised answer plus attribution. The graph runs
 synchronously under the hood, so we off-load it to a thread executor
 to keep the FastAPI event loop free.
 """
+
 from __future__ import annotations
 
 import asyncio
 import time
 from functools import partial
-from typing import Any
 
 from ..models import BackendResult, DispatchEnvelope
 from .base import Backend, HealthResult
@@ -69,11 +69,7 @@ class LLMRouterBackend(Backend):
             error_msg = state.get("error") or ""
             rounds = state.get("rounds", 0)
             attribution = state.get("attribution") or {}
-            records = (
-                attribution.get("records")
-                if isinstance(attribution, dict)
-                else []
-            )
+            records = attribution.get("records") if isinstance(attribution, dict) else []
             plan = state.get("plan")
             code_b = state.get("code_b")
             fallback_used = state.get("fallback_used", False)

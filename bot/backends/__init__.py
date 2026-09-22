@@ -12,6 +12,7 @@ from __future__ import annotations
 from .base import Backend, HealthResult
 from .claude import ClaudeBackend
 from .codex import CodexBackend
+from .judge import JudgeBackend
 from .llm_router import LLMRouterBackend
 
 __all__ = [
@@ -19,5 +20,6 @@ __all__ = [
     "HealthResult",
     "ClaudeBackend",
     "CodexBackend",
+    "JudgeBackend",
     "LLMRouterBackend",
 ]

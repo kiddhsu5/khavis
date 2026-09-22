@@ -6,7 +6,7 @@ from typing import Literal
 
 from pydantic import BaseModel, Field
 
-BackendName = Literal["claude", "codex", "llm-router"]
+BackendName = Literal["claude", "codex", "llm-router", "judge"]
 
 
 class IncomingMessage(BaseModel):

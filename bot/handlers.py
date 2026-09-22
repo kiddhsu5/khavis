@@ -86,11 +86,15 @@ class HandlerDeps:
         allowlist: list[int],
         backends: dict[str, object],
         pools: list[tuple[str, list[str]]] | None = None,
+        judge: object | None = None,
+        secrets: object | None = None,
     ) -> None:
         self.telegram = telegram
         self.allowlist = allowlist
         self.backends = backends
         self.pools = pools or []
+        self.judge = judge
+        self.secrets = secrets
 
 
 async def handle_start(msg: IncomingMessage, deps: HandlerDeps) -> None:
@@ -99,9 +103,7 @@ async def handle_start(msg: IncomingMessage, deps: HandlerDeps) -> None:
     api: TelegramAPI = deps.telegram  # type: ignore[assignment]
     if not is_allowed(msg.chat_id, deps.allowlist):
         # Plain text (no MarkdownV2) — minimal escape risk.
-        await api.send_message(
-            msg.chat_id, "🚫 Not authorized.", parse_mode=None
-        )
+        await api.send_message(msg.chat_id, "🚫 Not authorized.", parse_mode=None)
         return
     await api.send_message(
         msg.chat_id,

@@ -21,10 +21,10 @@ from typing import Any
 from fastapi import FastAPI, Request
 
 from .aggregator import format_report
-from .backends import ClaudeBackend, CodexBackend, LLMRouterBackend
+from .backends import ClaudeBackend, CodexBackend, JudgeBackend, LLMRouterBackend
 from .dispatch import DispatchRouter
 from .handlers import HandlerDeps, is_allowed, route_command
-from .models import BackendName, IncomingMessage
+from .models import BackendName, BackendResult, DispatchReport, IncomingMessage
 from .pairing_loader import load_pairing
 from .polling import long_poll_loop
 from .secrets import BotSecrets
@@ -53,6 +53,10 @@ def _build_router_and_deps(secrets: BotSecrets) -> tuple[DispatchRouter, Handler
         allowlist=allowed,
         backends={k: v for k, v in backends.items()},  # type: ignore[dict-item]
         pools=[],  # populated lazily via ``_populate_pools()`` in lifespan
+        # Stored on deps so the /run handler can pull the judge without
+        # re-running the lifespan.
+        judge=JudgeBackend(),
+        secrets=secrets,
     )
     return router, deps
 
@@ -155,11 +159,84 @@ def _build_handler(router: DispatchRouter, deps: HandlerDeps):
             envelope = await handler(incoming, deps)
             if envelope is None or not envelope.prompt:
                 return
-            report = await router.dispatch(envelope)
+            # Send a placeholder message first, then edit it as backends
+            # complete. This gives the user immediate visual feedback
+            # that the dispatch is running, instead of a multi-minute
+            # silence when one backend is slow.
+            placeholder = "⏳ dispatching..."
+            placeholder_msg_id: int | None = None
             try:
-                await deps.telegram.send_message(incoming.chat_id, format_report(report))
+                sent = await deps.telegram.send_message(
+                    incoming.chat_id,
+                    placeholder,
+                    parse_mode=None,
+                    reply_to=incoming.message_id,
+                )
+                placeholder_msg_id = sent.get("message_id")
             except Exception as exc:  # noqa: BLE001
-                print(f"[bot.main] send_message failed: {exc!r}", flush=True)
+                print(f"[bot.main] placeholder send failed: {exc!r}", flush=True)
+
+            last_edit_ts = [0.0]
+
+            async def _on_complete(_new: BackendResult, completed: list[BackendResult]) -> None:
+                if placeholder_msg_id is None:
+                    return
+                # Telegram caps edits at ~30/minute per chat. With three
+                # backends we expect at most two updates after the
+                # placeholder, well under the limit; the timestamp guard
+                # is a belt-and-braces safety net for future backends.
+                import time as _t
+
+                now = _t.monotonic()
+                if now - last_edit_ts[0] < 1.0:
+                    return
+                last_edit_ts[0] = now
+                # Render a partial report (no consensus yet — that
+                # only exists after the final backend completes).
+                partial = DispatchReport(
+                    envelope=envelope, results=completed, consensus="", consensus_source=""
+                )
+                with contextlib.suppress(Exception):
+                    await deps.telegram.edit_message(
+                        incoming.chat_id,
+                        placeholder_msg_id,
+                        format_report(partial),
+                        parse_mode=None,
+                    )
+
+            report = await router.dispatch_streaming(envelope, _on_complete)
+
+            # If at least one backend succeeded, run the judge to pick
+            # the best answer. The judge runs locally on Ollama-Mac (or
+            # whichever Ollama the surface IP points to), so it costs
+            # nothing and adds <2 s in the common case.
+            judge = getattr(deps, "judge", None)
+            if judge is not None and any(r.ok for r in report.results):
+                try:
+                    judgment = await judge.judge_pick(envelope, report)
+                    if judgment.ok:
+                        report.consensus = judgment.text
+                        report.consensus_source = "judge"  # type: ignore[assignment]
+                    else:
+                        # Judge failed — fall back to heuristic synthesis.
+                        from .dispatch import synthesize
+
+                        text, source = synthesize(r for r in report.results if r.ok)
+                        report.consensus = text
+                        report.consensus_source = source
+                except Exception as exc:  # noqa: BLE001
+                    print(f"[bot.main] judge error: {exc!r}", flush=True)
+
+            if placeholder_msg_id is not None:
+                try:
+                    await deps.telegram.edit_message(
+                        incoming.chat_id,
+                        placeholder_msg_id,
+                        format_report(report),
+                        parse_mode=None,
+                    )
+                except Exception as exc:  # noqa: BLE001
+                    print(f"[bot.main] final edit failed: {exc!r}", flush=True)
             return
         await handler(incoming, deps)
 
