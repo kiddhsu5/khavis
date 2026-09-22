@@ -39,7 +39,10 @@ bot = [
     "fastapi>=0.110",
     "uvicorn[standard]>=0.27",
     "httpx>=0.27",
-    "python-telegram-bot==20.7",
+    # NOTE: ``python-telegram-bot`` is intentionally NOT a dependency.
+    # The bot talks to the Telegram Bot API directly over httpx; pulling
+    # in PTB would pin ``httpx~=0.25.2`` (for PTB 20.x) or ``~=0.27``
+    # (for PTB 21.x) and conflict with the range above.
 ]
 dev = [
     "pytest>=8.0",
