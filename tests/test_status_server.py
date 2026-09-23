@@ -17,7 +17,12 @@ import json
 from pathlib import Path
 from unittest.mock import patch
 
-from scripts.status_server import _redact, ensure_self_signed_cert, render_html
+from scripts.status_server import (
+    _redact,
+    ensure_self_signed_cert,
+    render_html,
+    resolve_cert_paths,
+)
 
 
 class TestRedact:
@@ -159,3 +164,24 @@ class TestSelfSignedCert:
         with patch("scripts.status_server.subprocess.run", side_effect=OSError("no openssl")):
             assert ensure_self_signed_cert(cert, key) is False
         assert not cert.exists()
+
+
+class TestResolveCertPaths:
+    def test_creates_parent_and_keeps_paths(self, tmp_path: Path):
+        cert, key = tmp_path / "sub" / "cert.pem", tmp_path / "sub" / "key.pem"
+        got_cert, got_key = resolve_cert_paths(cert, key)
+        assert (got_cert, got_key) == (cert, key)
+        assert cert.parent.is_dir()
+
+    def test_falls_back_to_temp_dir_when_unwritable(self, tmp_path: Path):
+        # A path whose parent is an existing *file* cannot be mkdir'd.
+        blocker = tmp_path / "not-a-dir"
+        blocker.write_text("x")
+        cert, key = blocker / "cert.pem", blocker / "key.pem"
+        got_cert, got_key = resolve_cert_paths(cert, key)
+        assert got_cert != cert
+        assert got_cert.parent.is_dir() and got_key.parent == got_cert.parent
+        assert got_cert.name == "cert.pem" and got_key.name == "key.pem"
+        # And the fallback is actually usable end to end.
+        assert ensure_self_signed_cert(got_cert, got_key) is True
+        assert got_cert.exists() and got_key.exists()

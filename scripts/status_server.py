@@ -241,6 +241,29 @@ class Handler(BaseHTTPRequestHandler):
         sys.stderr.write("%s - %s\n" % (self.address_string(), fmt % args))
 
 
+def resolve_cert_paths(cert_path: Path, key_path: Path) -> tuple[Path, Path]:
+    """Prefer the requested location; fall back to a temp dir if it is not creatable.
+
+    Under systemd the unit declares ``CacheDirectory=khavis-status`` so the
+    directory already exists and is writable. A bare manual run may not have
+    that, and ``ProtectSystem=``-style lockdown is not the only reason a
+    ``/etc/...`` default would fail to create — so degrade instead of dying.
+    """
+    try:
+        cert_path.parent.mkdir(parents=True, exist_ok=True)
+        return cert_path, key_path
+    except OSError as exc:
+        import tempfile  # noqa: PLC0415 - only on the fallback path
+
+        fallback = Path(tempfile.mkdtemp(prefix="khavis-status-"))
+        print(
+            f"cert dir {cert_path.parent} not usable ({exc!r}); using {fallback}",
+            file=sys.stderr,
+            flush=True,
+        )
+        return fallback / cert_path.name, fallback / key_path.name
+
+
 def ensure_self_signed_cert(cert_path: Path, key_path: Path) -> bool:
     """Create a throwaway self-signed cert if neither file exists yet.
 
@@ -272,9 +295,10 @@ def main() -> None:
     parser.add_argument("--host", default="0.0.0.0")
     parser.add_argument("--port", type=int, default=80, help="plain HTTP (Cloudflare SSL mode Flexible)")
     parser.add_argument("--tls-port", type=int, default=443, help="HTTPS with self-signed cert (Cloudflare SSL mode Full)")
-    parser.add_argument("--cert", type=Path, default=Path("/etc/khavis-status/cert.pem"))
-    parser.add_argument("--key", type=Path, default=Path("/etc/khavis-status/key.pem"))
+    parser.add_argument("--cert", type=Path, default=Path("/var/cache/khavis-status/cert.pem"))
+    parser.add_argument("--key", type=Path, default=Path("/var/cache/khavis-status/key.pem"))
     args = parser.parse_args()
+    cert_path, key_path = resolve_cert_paths(args.cert, args.key)
 
     servers: list[tuple[str, ThreadingHTTPServer, threading.Thread]] = []
 
@@ -282,9 +306,9 @@ def main() -> None:
     servers.append(("http", http_srv, threading.Thread(target=http_srv.serve_forever, daemon=True)))
     print(f"khavis-status listening on http://{args.host}:{args.port}", flush=True)
 
-    if args.tls_port and ensure_self_signed_cert(args.cert, args.key):
+    if args.tls_port and ensure_self_signed_cert(cert_path, key_path):
         ctx = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
-        ctx.load_cert_chain(str(args.cert), str(args.key))
+        ctx.load_cert_chain(str(cert_path), str(key_path))
         https_srv = ThreadingHTTPServer((args.host, args.tls_port), Handler)
         https_srv.socket = ctx.wrap_socket(https_srv.socket, server_side=True)
         servers.append(("https", https_srv, threading.Thread(target=https_srv.serve_forever, daemon=True)))
