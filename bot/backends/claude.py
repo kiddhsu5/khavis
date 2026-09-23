@@ -102,7 +102,14 @@ class ClaudeBackend(Backend):
 
 
 def _parse_claude_json(raw: str, prompt: str) -> tuple[str, str, int, int]:
-    """Best-effort JSON extraction; falls back to the raw text."""
+    """Best-effort JSON extraction; falls back to the raw text.
+
+    ``claude -p --output-format json`` emits a single object whose assistant
+    text lives under ``result`` (not ``text``/``content``/``output`` — those
+    are checked too for older/newer CLI shapes).  ``model`` is not at the
+    top level either; it is a key of ``modelUsage``.  ``usage.input_tokens``
+    / ``usage.output_tokens`` are top-level and parse directly.
+    """
     raw = (raw or "").strip()
     if not raw:
         return "", "", 0, 0
@@ -111,8 +118,18 @@ def _parse_claude_json(raw: str, prompt: str) -> tuple[str, str, int, int]:
     except json.JSONDecodeError:
         return raw, "", 0, 0
     if isinstance(data, dict):
-        text = str(data.get("text") or data.get("content") or data.get("output") or "")
+        text = str(
+            data.get("result")
+            or data.get("text")
+            or data.get("content")
+            or data.get("output")
+            or ""
+        )
         model = str(data.get("model") or "")
+        if not model:
+            model_usage = data.get("modelUsage") or {}
+            if isinstance(model_usage, dict) and model_usage:
+                model = str(next(iter(model_usage.keys())))
         usage = data.get("usage") or {}
         tok_in = int(usage.get("input_tokens") or usage.get("input") or 0)
         tok_out = int(usage.get("output_tokens") or usage.get("output") or 0)
