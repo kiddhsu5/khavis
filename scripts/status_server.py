@@ -9,8 +9,13 @@ Run with the project venv so ``core.registry`` imports resolve::
 
     /root/llm-router-bot/.venv/bin/python -m scripts.status_server --port 80
 
-Cloudflare terminates TLS in front of this (proxied record + SSL mode
-``Full`` or ``Flexible``), so the origin only has to speak HTTP.
+Cloudflare terminates TLS at the edge; the origin serves plain HTTP on
+``:80`` *and* HTTPS with a throwaway self-signed cert on ``:443``. Both
+on purpose: ``bot.kiddhsu.taipei`` already shares this zone, so we must
+not force a zone-wide SSL-mode change. Serving both ports means the
+record works whether the zone (or a per-hostname Configuration Rule) is
+set to ``Flexible`` (edge -> :80) or ``Full`` (edge -> :443; Cloudflare
+accepts a self-signed origin cert outside strict mode).
 """
 
 from __future__ import annotations
@@ -19,7 +24,10 @@ import argparse
 import html
 import json
 import re
+import ssl
+import subprocess
 import sys
+import threading
 import time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
@@ -233,19 +241,65 @@ class Handler(BaseHTTPRequestHandler):
         sys.stderr.write("%s - %s\n" % (self.address_string(), fmt % args))
 
 
+def ensure_self_signed_cert(cert_path: Path, key_path: Path) -> bool:
+    """Create a throwaway self-signed cert if neither file exists yet.
+
+    Returns True when a cert is available. The private key never leaves
+    the box and is worthless to an attacker who already has root on it —
+    its only job is to satisfy Cloudflare outside ``Full (strict)``.
+    """
+    if cert_path.exists() and key_path.exists():
+        return True
+    cert_path.parent.mkdir(parents=True, exist_ok=True)
+    cmd = [
+        "openssl", "req", "-x509", "-newkey", "rsa:2048", "-nodes",
+        "-days", "825",
+        "-keyout", str(key_path), "-out", str(cert_path),
+        "-subj", "/CN=khavis.kiddhsu.taipei",
+        "-addext", "subjectAltName=DNS:khavis.kiddhsu.taipei,DNS:localhost",
+    ]
+    try:
+        subprocess.run(cmd, check=True, capture_output=True, timeout=30)
+    except (OSError, subprocess.SubprocessError) as exc:
+        print(f"cert bootstrap failed: {exc!r}", file=sys.stderr, flush=True)
+        return False
+    key_path.chmod(0o600)
+    return True
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(prog="khavis-status")
     parser.add_argument("--host", default="0.0.0.0")
-    parser.add_argument("--port", type=int, default=80)
+    parser.add_argument("--port", type=int, default=80, help="plain HTTP (Cloudflare SSL mode Flexible)")
+    parser.add_argument("--tls-port", type=int, default=443, help="HTTPS with self-signed cert (Cloudflare SSL mode Full)")
+    parser.add_argument("--cert", type=Path, default=Path("/etc/khavis-status/cert.pem"))
+    parser.add_argument("--key", type=Path, default=Path("/etc/khavis-status/key.pem"))
     args = parser.parse_args()
-    server = ThreadingHTTPServer((args.host, args.port), Handler)
+
+    servers: list[tuple[str, ThreadingHTTPServer, threading.Thread]] = []
+
+    http_srv = ThreadingHTTPServer((args.host, args.port), Handler)
+    servers.append(("http", http_srv, threading.Thread(target=http_srv.serve_forever, daemon=True)))
     print(f"khavis-status listening on http://{args.host}:{args.port}", flush=True)
+
+    if args.tls_port and ensure_self_signed_cert(args.cert, args.key):
+        ctx = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+        ctx.load_cert_chain(str(args.cert), str(args.key))
+        https_srv = ThreadingHTTPServer((args.host, args.tls_port), Handler)
+        https_srv.socket = ctx.wrap_socket(https_srv.socket, server_side=True)
+        servers.append(("https", https_srv, threading.Thread(target=https_srv.serve_forever, daemon=True)))
+        print(f"khavis-status listening on https://{args.host}:{args.tls_port} (self-signed)", flush=True)
+
+    for _name, _srv, t in servers:
+        t.start()
     try:
-        server.serve_forever()
+        while True:
+            time.sleep(3600)
     except KeyboardInterrupt:
         pass
     finally:
-        server.server_close()
+        for _name, srv, _t in servers:
+            srv.shutdown()
 
 
 if __name__ == "__main__":

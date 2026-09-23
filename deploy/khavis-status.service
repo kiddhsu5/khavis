@@ -14,7 +14,7 @@ WorkingDirectory=/root/llm-router-bot
 # the public page — see scripts/status_server.py:_redact().
 EnvironmentFile=/root/llm-router-bot/.env
 Environment=PYTHONUNBUFFERED=1
-ExecStart=/root/llm-router-bot/.venv/bin/python /root/llm-router-bot/scripts/status_server.py --port 80
+ExecStart=/root/llm-router-bot/.venv/bin/python /root/llm-router-bot/scripts/status_server.py --port 80 --tls-port 443
 Restart=always
 RestartSec=5
 StandardOutput=journal
@@ -25,7 +25,9 @@ NoNewPrivileges=true
 PrivateTmp=true
 ProtectSystem=full
 ProtectHome=read-only
-ReadWritePaths=/root/llm-router-bot/logs
+# logs = app logs; /etc/khavis-status = the throwaway self-signed cert
+# the server mints on first boot (see ensure_self_signed_cert).
+ReadWritePaths=/root/llm-router-bot/logs /etc/khavis-status
 
 [Install]
 WantedBy=multi-user.target

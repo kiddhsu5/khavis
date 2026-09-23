@@ -14,8 +14,10 @@ You may obtain a copy of the License at
 from __future__ import annotations
 
 import json
+from pathlib import Path
+from unittest.mock import patch
 
-from scripts.status_server import _redact, render_html
+from scripts.status_server import _redact, ensure_self_signed_cert, render_html
 
 
 class TestRedact:
@@ -124,3 +126,36 @@ class TestRender:
         payload = {"ok": False, "bot": {"ok": True, "detail": "x"}, "pools": rows}
         parsed = json.loads(json.dumps(payload, ensure_ascii=False))
         assert len(parsed["pools"]) == 2
+
+
+class TestSelfSignedCert:
+    def test_no_op_when_cert_already_present(self, tmp_path: Path):
+        cert, key = tmp_path / "cert.pem", tmp_path / "key.pem"
+        cert.write_text("x")
+        key.write_text("y")
+        with patch("scripts.status_server.subprocess.run") as run:
+            assert ensure_self_signed_cert(cert, key) is True
+        run.assert_not_called()
+
+    def test_mints_keypair_when_missing(self, tmp_path: Path):
+        cert, key = tmp_path / "cert.pem", tmp_path / "key.pem"
+        assert ensure_self_signed_cert(cert, key) is True
+        assert cert.exists() and key.exists()
+        # Private key must not be world-readable.
+        assert (key.stat().st_mode & 0o077) == 0
+
+    def test_reuses_existing_keypair(self, tmp_path: Path):
+        cert, key = tmp_path / "cert.pem", tmp_path / "key.pem"
+        assert ensure_self_signed_cert(cert, key) is True
+        first = cert.read_text()
+        cert.write_text("mutated")
+        with patch("scripts.status_server.subprocess.run") as run:
+            assert ensure_self_signed_cert(cert, key) is True
+        run.assert_not_called()
+        assert cert.read_text() == "mutated"
+
+    def test_returns_false_when_openssl_fails(self, tmp_path: Path):
+        cert, key = tmp_path / "cert.pem", tmp_path / "key.pem"
+        with patch("scripts.status_server.subprocess.run", side_effect=OSError("no openssl")):
+            assert ensure_self_signed_cert(cert, key) is False
+        assert not cert.exists()
