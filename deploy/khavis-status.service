@@ -1,0 +1,31 @@
+[Unit]
+Description=khavis.kiddhsu.taipei status page (live LLM pool health)
+Documentation=https://github.com/kiddhsu5/llm-router
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/root/llm-router-bot
+# .env IS required: pool health_check() has to see the API keys (and
+# SURFACE_IP, which pools.yaml expands) to tell a working pool from a
+# misconfigured one. Anything sensitive is redacted before it reaches
+# the public page — see scripts/status_server.py:_redact().
+EnvironmentFile=/root/llm-router-bot/.env
+Environment=PYTHONUNBUFFERED=1
+ExecStart=/root/llm-router-bot/.venv/bin/python /root/llm-router-bot/scripts/status_server.py --port 80
+Restart=always
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=khavis-status
+
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+ProtectHome=read-only
+ReadWritePaths=/root/llm-router-bot/logs
+
+[Install]
+WantedBy=multi-user.target
