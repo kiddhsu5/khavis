@@ -14,6 +14,7 @@ You may obtain a copy of the License at
 from __future__ import annotations
 
 import json
+import threading
 import time
 from pathlib import Path
 from unittest.mock import patch
@@ -282,35 +283,103 @@ class TestStartListener:
 
 
 class TestHealthCache:
-    """A serial sweep of 12 pools waits on the slowest unreachable one.
+    """A sweep of 12 pools waits on the slowest unreachable one.
 
-    The cache is what keeps page loads off that timeout path.
+    Stale-while-revalidate is what keeps visitors off that timeout path.
     """
 
     def setup_method(self):
         status_server._HEALTH_CACHE = (None, 0.0)
+        status_server._REFRESHING = False
 
     def teardown_method(self):
         status_server._HEALTH_CACHE = (None, 0.0)
+        status_server._REFRESHING = False
 
-    def test_second_call_hits_the_cache(self):
+    @staticmethod
+    def _age_cache_by(seconds: float) -> None:
+        rows, _ts = status_server._HEALTH_CACHE
+        status_server._HEALTH_CACHE = (rows, time.monotonic() - seconds)
+
+    @staticmethod
+    def _wait_for(predicate, timeout: float = 3.0) -> bool:
+        """Poll until predicate() is true. Returns whether it happened.
+
+        Not ``probe.call_count``: the refresher calls _probe_all_pools
+        *before* it writes the cache, so waiting on the call count races
+        the assignment.
+        """
+        deadline = time.monotonic() + timeout
+        while time.monotonic() < deadline:
+            if predicate():
+                return True
+            time.sleep(0.01)
+        return False
+
+    def test_first_call_blocks_and_populates(self):
         sentinel = [{"name": "x", "ok": True, "detail": "", "models": [], "capabilities": [], "provider_id": ""}]
         with patch.object(status_server, "_probe_all_pools", return_value=sentinel) as probe:
             assert pool_health() is sentinel
-            assert pool_health() is sentinel
         assert probe.call_count == 1
 
-    def test_refreshes_after_ttl(self):
+    def test_second_call_hits_the_cache(self):
         with patch.object(status_server, "_probe_all_pools", return_value=[]) as probe:
             pool_health()
-            # Age the entry past the TTL without sleeping for real.
-            rows, _ts = status_server._HEALTH_CACHE
-            status_server._HEALTH_CACHE = (rows, time.monotonic() - status_server.CACHE_TTL - 1)
             pool_health()
-        assert probe.call_count == 2
+        assert probe.call_count == 1
+
+    def test_stale_value_is_served_without_waiting(self):
+        # The whole point: a TTL expiry must not put a 20s probe in front
+        # of the visitor who happened to hit right after it lapsed.
+        first = [{"name": "old", "ok": True, "detail": "", "models": [], "capabilities": [], "provider_id": ""}]
+        second = [{"name": "new", "ok": True, "detail": "", "models": [], "capabilities": [], "provider_id": ""}]
+        gate = threading.Event()
+        n = 0
+
+        def probe_fn():
+            nonlocal n
+            n += 1
+            if n == 1:
+                return first
+            gate.wait(timeout=5)  # hold the refresher until we say so
+            return second
+
+        with patch.object(status_server, "_probe_all_pools", side_effect=probe_fn) as probe:
+            assert pool_health() is first
+            self._age_cache_by(status_server.CACHE_TTL + 1)
+            t0 = time.monotonic()
+            assert pool_health() is first  # stale, served immediately
+            assert time.monotonic() - t0 < 0.2
+            assert probe.call_count == 2  # the refresher did start
+            gate.set()
+            assert self._wait_for(lambda: pool_health() is second)
+            assert pool_health() is second
+
+    def test_concurrent_stale_hits_start_only_one_refresh(self):
+        with patch.object(status_server, "_probe_all_pools", return_value=[]) as probe:
+            pool_health()
+            self._age_cache_by(status_server.CACHE_TTL + 1)
+
+            slow = threading.Event()
+
+            def blocking():
+                slow.wait(timeout=5)
+                return []
+
+            with patch.object(status_server, "_probe_all_pools", side_effect=blocking) as probe2:
+                threads = [threading.Thread(target=pool_health) for _ in range(12)]
+                for t in threads:
+                    t.start()
+                for t in threads:
+                    t.join(timeout=2)
+                slow.set()
+                # Give a second, unwanted refresh a chance to appear.
+                time.sleep(0.2)
+            assert probe2.call_count == 1, "single-flight failed"
+            assert probe.call_count == 1
 
     def test_ttl_is_long_enough_to_absorb_timeouts(self):
-        # Below ~10s a single slow probe would still dominate page loads.
+        # Below ~10s a single slow probe would still dominate refreshes.
         assert status_server.CACHE_TTL >= 10.0
 
     def test_probes_run_in_parallel_not_serially(self):

@@ -61,28 +61,56 @@ def _redact(text: str) -> str:
     return text
 
 
-# (rows, monotonic timestamp). Refreshed at most once per CACHE_TTL.
+# (rows, monotonic timestamp). Served stale and refreshed in the
+# background once older than CACHE_TTL.
 CACHE_TTL = 30.0
 _HEALTH_CACHE: tuple[list[dict[str, object]] | None, float] = (None, 0.0)
+_CACHE_LOCK = threading.Lock()
+_REFRESHING = False
 
 
 def pool_health() -> list[dict[str, object]]:
     """Return one row per registered pool. Never raises.
 
-    Probes run in parallel and are cached for ``CACHE_TTL``: a serial
-    sweep of 12 pools blocks for as long as the slowest unreachable
-    endpoint (a home-LAN Ollama can cost its full connect timeout), which
-    would otherwise make every page load wait on a timeout.
+    Stale-while-revalidate. A sweep costs as long as the slowest
+    unreachable endpoint (a home-LAN Ollama burns its whole connect
+    timeout — ~20s here), so a TTL-expiry must never land on a visitor.
+    Past the TTL the previous rows are returned immediately and a single
+    background thread refreshes them. Only the very first request, with
+    nothing cached at all, has to wait.
     """
     global _HEALTH_CACHE  # noqa: PLW0603 - module-level memo is intended
 
     rows, cached_at = _HEALTH_CACHE
-    if rows is not None and (time.monotonic() - cached_at) < CACHE_TTL:
+    if rows is None:
+        rows = _probe_all_pools()
+        _HEALTH_CACHE = (rows, time.monotonic())
         return rows
-
-    rows = _probe_all_pools()
-    _HEALTH_CACHE = (rows, time.monotonic())
+    if (time.monotonic() - cached_at) >= CACHE_TTL:
+        _kick_refresh()
     return rows
+
+
+def _kick_refresh() -> None:
+    """Start one background resweep. No-op if one is already running."""
+    global _REFRESHING  # noqa: PLW0603 - module-level flag is intended
+
+    with _CACHE_LOCK:
+        if _REFRESHING:
+            return
+        _REFRESHING = True
+
+    def run() -> None:
+        global _REFRESHING, _HEALTH_CACHE  # noqa: PLW0603
+        try:
+            _HEALTH_CACHE = (_probe_all_pools(), time.monotonic())
+        except Exception as exc:  # noqa: BLE001 - never kill the refresher
+            print(f"health refresh failed: {exc!r}", file=sys.stderr, flush=True)
+        finally:
+            with _CACHE_LOCK:
+                _REFRESHING = False
+
+    threading.Thread(target=run, daemon=True, name="khavis-health-refresh").start()
 
 
 def _probe_all_pools() -> list[dict[str, object]]:
