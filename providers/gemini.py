@@ -26,16 +26,21 @@ except Exception:  # pragma: no cover
     genai = None  # type: ignore[assignment,misc]
 
 
-DEFAULT_MODELS: list[str] = ["gemini-2.5-flash", "gemini-2.5-pro"]
+# Use the ``-latest`` aliases, not pinned 2.x names: Google revoked
+# ``gemini-2.5-flash`` / ``gemini-2.5-pro`` for new users (404
+# ``This model ... is no longer available``), which silently broke this
+# pool. The aliases track the current generation so we do not repeat
+# that breakage every time Google retires a version.
+DEFAULT_MODELS: list[str] = ["gemini-flash-latest", "gemini-pro-latest"]
 ENV_KEY = "GOOGLE_API_KEY"
 
 
 class GeminiPlugin(ProviderPlugin):
     """Google Gemini pool.
 
-    Supports multiple model variants (``gemini-2.5-flash``,
-    ``gemini-2.5-pro``). The first entry of ``models`` is treated as the
-    default unless overridden at construction time.
+    Supports multiple model variants (``gemini-flash-latest``,
+    ``gemini-pro-latest``). The first entry of ``models`` is treated as
+    the default unless overridden at construction time.
     """
 
     provider_id = "gemini"

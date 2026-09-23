@@ -114,14 +114,14 @@ def _build_pools() -> list[PoolSpec]:
         PoolSpec(
             name="Google-Gemini-Flash",
             env_key="GOOGLE_API_KEY",
-            factory=lambda: GeminiPlugin(model="gemini-2.5-flash"),
-            metadata={"variants": "gemini-2.5-flash,gemini-2.5-pro"},
+            factory=lambda: GeminiPlugin(model="gemini-flash-latest"),
+            metadata={"variants": "gemini-flash-latest,gemini-pro-latest"},
         ),
         PoolSpec(
             name="Google-Gemini-Pro",
             env_key="GOOGLE_API_KEY",
-            factory=lambda: GeminiPlugin(model="gemini-2.5-pro"),
-            metadata={"variants": "gemini-2.5-flash,gemini-2.5-pro"},
+            factory=lambda: GeminiPlugin(model="gemini-pro-latest"),
+            metadata={"variants": "gemini-flash-latest,gemini-pro-latest"},
         ),
         PoolSpec(
             name="NVIDIA-Cloud",

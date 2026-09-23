@@ -178,12 +178,12 @@ class TestGeminiPlugin:
         p = GeminiPlugin()
         assert p.name == "Google-Gemini"
         assert p.provider_id == "gemini"
-        assert p.model == "gemini-2.5-flash"
-        assert "gemini-2.5-pro" in p.list_models()
+        assert p.model == "gemini-flash-latest"
+        assert "gemini-pro-latest" in p.list_models()
 
     def test_explicit_model(self):
-        p = GeminiPlugin(model="gemini-2.5-pro")
-        assert p.model == "gemini-2.5-pro"
+        p = GeminiPlugin(model="gemini-pro-latest")
+        assert p.model == "gemini-pro-latest"
 
     def test_custom_models(self):
         p = GeminiPlugin(models=["a", "b"])
@@ -209,10 +209,10 @@ class TestGeminiPlugin:
             out = p.chat(PING)
         assert out["choices"][0]["message"]["content"] == "pong"
         assert out["choices"][0]["message"]["role"] == "assistant"
-        assert out["model"] == "gemini-2.5-flash"
+        assert out["model"] == "gemini-flash-latest"
 
     def test_chat_handles_system_messages(self):
-        p = GeminiPlugin(api_key="x", model="gemini-2.5-pro")
+        p = GeminiPlugin(api_key="x", model="gemini-pro-latest")
         fake_model = MagicMock()
         fake_model.generate_content.return_value = MagicMock(text="x")
         with patch("providers.gemini.genai") as genai_mod:
@@ -227,7 +227,7 @@ class TestGeminiPlugin:
         prompt = fake_model.generate_content.call_args[0][0]
         assert "be brief" in prompt
         assert "hi" in prompt
-        assert out["model"] == "gemini-2.5-pro"
+        assert out["model"] == "gemini-pro-latest"
 
     def test_check_quota(self):
         _quota_ok(GeminiPlugin(api_key="x"))

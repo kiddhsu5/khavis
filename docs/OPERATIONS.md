@@ -305,7 +305,7 @@ curl -fsS https://bot.kiddhsu.taipei/healthz | jq
 |---|---|---|
 | `MiniMax-M3` | MiniMax | `MiniMax-M3` |
 | `GLM-5.3` | ZhipuAI | `glm-5.3` |
-| `Google-Gemini` | Google | `gemini-2.5-flash` / `gemini-2.5-pro` |
+| `Google-Gemini` | Google | `gemini-flash-latest` / `gemini-pro-latest` |
 | `NVIDIA-Cloud` | NVIDIA NIM | (官方預設) |
 | `DeepSeek-V4-Pro` | ByteDance Volcano Ark | `deepseek-v4-pro` |
 | `DeepSeek-V4.1-Flash` | ByteDance Volcano Ark | `deepseek-v4.1-flash` |

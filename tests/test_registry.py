@@ -195,13 +195,13 @@ class TestApplyPoolsConfig:
             """
             pools:
               - name: Google-Gemini
-                models: [gemini-2.5-pro, gemini-2.5-flash]
+                models: [gemini-pro-latest, gemini-flash-latest]
             """,
         )
         registry.apply_pools_config(path)
         p = registry.get("Google-Gemini")
         assert p is not None
-        assert p.model == "gemini-2.5-pro"
+        assert p.model == "gemini-pro-latest"
 
     def test_unknown_pool_records_error_but_continues(self, tmp_path):
         registry = PluginRegistry(PROJECT_ROOT).discover()

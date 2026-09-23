@@ -91,7 +91,7 @@ def chat(messages, provider="auto", **kwargs):
             if _should_fallback(kwargs): return chat(messages, provider="openai", **kwargs)
             raise
     elif provider == "gemini":
-        client = genai.GenerativeModel("gemini-2.5-flash")
+        client = genai.GenerativeModel("gemini-flash-latest")
         try:
             r = client.generate_content(_to_gemini(messages))
             return _norm_gemini(r)

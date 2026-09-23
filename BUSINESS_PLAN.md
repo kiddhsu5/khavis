@@ -484,7 +484,7 @@ class InternalResponse(BaseModel):
 **已支援的 provider（v0.1.0 launch 目標,12 個 pool,其中 4 個 BYOK）**：
 1. OpenAI Platform API（gpt-5o、gpt-5、gpt-5-mini）*(BYOK)*
 2. Anthropic Claude API（claude-sonnet-5、claude-opus-4.5、claude-haiku-4.5）*(BYOK)*
-3. Google Gemini（gemini-2.5-pro、gemini-2.5-flash）
+3. Google Gemini（gemini-pro-latest、gemini-flash-latest）
 4. Zhipu GLM（glm-4.5、glm-coding-plan）
 5. ByteDance Volcano Ark / DeepSeek（deepseek-v4-pro、deepseek-v4.1-flash、glm-5.3-flash）
 6. MiniMax-M3（MiniMax-M3 系列）
