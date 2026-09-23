@@ -290,6 +290,73 @@ def ensure_self_signed_cert(cert_path: Path, key_path: Path) -> bool:
     return True
 
 
+def primary_ipv4() -> str | None:
+    """Outbound IPv4 of this host, without touching DNS.
+
+    A UDP ``connect()`` picks a local address from the routing table and
+    sends no packets. Deliberately not ``getaddrinfo(gethostname())`` —
+    on a host with a ``.local`` name that blocks on mDNS for seconds and
+    would stall service startup.
+    """
+    import socket  # noqa: PLC0415 - only needed here
+
+    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    try:
+        s.connect(("8.8.8.8", 53))
+        addr = s.getsockname()[0]
+    except OSError:
+        return None
+    finally:
+        s.close()
+    return None if not addr or addr.startswith("127.") else addr
+
+
+def candidate_hosts(preferred: str) -> list[str]:
+    """Bind addresses to try, most preferred first.
+
+    A wildcard bind conflicts with *any* socket already holding that port
+    on a specific address. On this box ``tailscaled`` holds 443 on the
+    Tailscale IP, so ``0.0.0.0:443`` is EADDRINUSE even though the public
+    path is completely free — falling back to a concrete unicast address
+    sidesteps the clash without disturbing whatever else is running.
+    """
+    hosts = [preferred]
+    if preferred not in ("0.0.0.0", "::", ""):
+        return hosts
+    addr = primary_ipv4()
+    if addr is not None and addr not in hosts:
+        hosts.append(addr)
+    hosts.append("127.0.0.1")
+    return hosts
+
+
+def start_listener(
+    label: str,
+    host: str,
+    port: int,
+    wrap_ssl: ssl.SSLContext | None = None,
+) -> tuple[str, ThreadingHTTPServer, threading.Thread] | None:
+    """Bind one listener, trying ``candidate_hosts`` in order.
+
+    Returns None when nothing bound — a dead :443 must not take :80 down
+    with it, and vice versa.
+    """
+    errors: list[str] = []
+    for addr in candidate_hosts(host):
+        try:
+            srv = ThreadingHTTPServer((addr, port), Handler)
+        except OSError as exc:
+            errors.append(f"{addr}:{port} -> {exc.strerror or exc}")
+            continue
+        if wrap_ssl is not None:
+            srv.socket = wrap_ssl.wrap_socket(srv.socket, server_side=True)
+        note = " (self-signed)" if wrap_ssl is not None else ""
+        print(f"khavis-status listening on {label}://{addr}:{port}{note}", flush=True)
+        return (f"{label}://{addr}", srv, threading.Thread(target=srv.serve_forever, daemon=True))
+    print(f"khavis-status: could not bind {label}:{port} — {'; '.join(errors)}", file=sys.stderr, flush=True)
+    return None
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(prog="khavis-status")
     parser.add_argument("--host", default="0.0.0.0")
@@ -300,21 +367,24 @@ def main() -> None:
     args = parser.parse_args()
     cert_path, key_path = resolve_cert_paths(args.cert, args.key)
 
-    servers: list[tuple[str, ThreadingHTTPServer, threading.Thread]] = []
+    started: list[tuple[str, ThreadingHTTPServer, threading.Thread]] = []
 
-    http_srv = ThreadingHTTPServer((args.host, args.port), Handler)
-    servers.append(("http", http_srv, threading.Thread(target=http_srv.serve_forever, daemon=True)))
-    print(f"khavis-status listening on http://{args.host}:{args.port}", flush=True)
+    http = start_listener("http", args.host, args.port)
+    if http is not None:
+        started.append(http)
 
-    if args.tls_port and ensure_self_signed_cert(cert_path, key_path):
-        ctx = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
-        ctx.load_cert_chain(str(cert_path), str(key_path))
-        https_srv = ThreadingHTTPServer((args.host, args.tls_port), Handler)
-        https_srv.socket = ctx.wrap_socket(https_srv.socket, server_side=True)
-        servers.append(("https", https_srv, threading.Thread(target=https_srv.serve_forever, daemon=True)))
-        print(f"khavis-status listening on https://{args.host}:{args.tls_port} (self-signed)", flush=True)
+    if args.tls_port:
+        if ensure_self_signed_cert(cert_path, key_path):
+            ctx = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+            ctx.load_cert_chain(str(cert_path), str(key_path))
+            https = start_listener("https", args.host, args.tls_port, wrap_ssl=ctx)
+            if https is not None:
+                started.append(https)
 
-    for _name, _srv, t in servers:
+    if not started:
+        raise SystemExit("khavis-status: no listener could be bound; refusing to idle")
+
+    for _name, _srv, t in started:
         t.start()
     try:
         while True:
@@ -322,7 +392,7 @@ def main() -> None:
     except KeyboardInterrupt:
         pass
     finally:
-        for _name, srv, _t in servers:
+        for _name, srv, _t in started:
             srv.shutdown()
 
 

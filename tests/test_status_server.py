@@ -19,9 +19,12 @@ from unittest.mock import patch
 
 from scripts.status_server import (
     _redact,
+    candidate_hosts,
     ensure_self_signed_cert,
+    primary_ipv4,
     render_html,
     resolve_cert_paths,
+    start_listener,
 )
 
 
@@ -185,3 +188,72 @@ class TestResolveCertPaths:
         # And the fallback is actually usable end to end.
         assert ensure_self_signed_cert(got_cert, got_key) is True
         assert got_cert.exists() and got_key.exists()
+
+
+class TestCandidateHosts:
+    def test_explicit_host_is_not_expanded(self):
+        assert candidate_hosts("127.0.0.1") == ["127.0.0.1"]
+
+    def test_wildcard_starts_wildcard_and_ends_loopback(self):
+        hosts = candidate_hosts("0.0.0.0")
+        assert hosts[0] == "0.0.0.0"
+        assert hosts[-1] == "127.0.0.1"
+        assert len(hosts) == len(set(hosts))
+
+    def test_never_returns_public_loopback_early(self):
+        hosts = candidate_hosts("0.0.0.0")
+        # 127.x may only be the last resort, otherwise a clash would
+        # silently downgrade the service to loopback-only.
+        assert all(not h.startswith("127.") for h in hosts[:-1])
+
+    def test_primary_ipv4_is_fast_and_not_loopback(self):
+        # This must never block on DNS — a stall here delays boot.
+        import time
+
+        t0 = time.monotonic()
+        addr = primary_ipv4()
+        assert time.monotonic() - t0 < 1.0
+        assert addr is None or not addr.startswith("127.")
+
+
+class TestStartListener:
+    def test_binds_and_serves(self):
+        got = start_listener("http", "127.0.0.1", 0)
+        assert got is not None
+        label, srv, thread = got
+        assert label == "http://127.0.0.1"
+        assert srv.server_address[1] > 0
+        try:
+            thread.start()
+            srv.shutdown()  # only valid once serve_forever is running
+        finally:
+            srv.server_close()
+
+    def test_port_clash_returns_none_instead_of_raising(self):
+        first = start_listener("http", "127.0.0.1", 0)
+        assert first is not None
+        _label, srv, _thread = first
+        port = srv.server_address[1]
+        try:
+            # Same concrete address and port: the fallback list has only
+            # one entry, so this must degrade to None, not raise.
+            assert start_listener("http", "127.0.0.1", port) is None
+        finally:
+            # server_close(), not shutdown() — shutdown() waits on an
+            # event that only serve_forever() sets, so calling it on a
+            # thread we never started deadlocks the test run.
+            srv.server_close()
+
+    def test_one_dead_listener_does_not_affect_the_other(self):
+        # Regression: a bind failure used to propagate out of main() and
+        # kill the listener that had already started successfully.
+        good = start_listener("http", "127.0.0.1", 0)
+        assert good is not None
+        _label, srv, _thread = good
+        try:
+            dead = start_listener("https", "127.0.0.1", srv.server_address[1])
+            assert dead is None
+            # The healthy listener is still intact and usable.
+            assert srv.socket.fileno() >= 0
+        finally:
+            srv.server_close()
