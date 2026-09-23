@@ -21,6 +21,7 @@ accepts a self-signed origin cert outside strict mode).
 from __future__ import annotations
 
 import argparse
+import concurrent.futures
 import html
 import json
 import re
@@ -60,8 +61,31 @@ def _redact(text: str) -> str:
     return text
 
 
+# (rows, monotonic timestamp). Refreshed at most once per CACHE_TTL.
+CACHE_TTL = 30.0
+_HEALTH_CACHE: tuple[list[dict[str, object]] | None, float] = (None, 0.0)
+
+
 def pool_health() -> list[dict[str, object]]:
-    """Return one row per registered pool. Never raises."""
+    """Return one row per registered pool. Never raises.
+
+    Probes run in parallel and are cached for ``CACHE_TTL``: a serial
+    sweep of 12 pools blocks for as long as the slowest unreachable
+    endpoint (a home-LAN Ollama can cost its full connect timeout), which
+    would otherwise make every page load wait on a timeout.
+    """
+    global _HEALTH_CACHE  # noqa: PLW0603 - module-level memo is intended
+
+    rows, cached_at = _HEALTH_CACHE
+    if rows is not None and (time.monotonic() - cached_at) < CACHE_TTL:
+        return rows
+
+    rows = _probe_all_pools()
+    _HEALTH_CACHE = (rows, time.monotonic())
+    return rows
+
+
+def _probe_all_pools() -> list[dict[str, object]]:
     try:
         from core.registry import PluginRegistry  # noqa: PLC0415 - lazy
     except Exception as exc:  # noqa: BLE001
@@ -77,8 +101,17 @@ def pool_health() -> list[dict[str, object]]:
     except Exception as exc:  # noqa: BLE001
         return [{"name": "registry", "ok": False, "detail": _redact(f"discover failed: {exc!r}"), "models": [], "capabilities": [], "provider_id": ""}]
 
-    rows: list[dict[str, object]] = []
-    for plug in reg.all():
+    plugs = list(reg.all())
+    return _probe_plugins(plugs)
+
+
+def _probe_plugins(plugs: list) -> list[dict[str, object]]:
+    """Run every plugin's health_check concurrently.
+
+    Wall time should track the slowest probe, not the sum of all of them.
+    """
+
+    def probe(plug) -> dict[str, object]:  # noqa: ANN001 - plugin type is ProviderPlugin
         try:
             h = plug.health_check()
             ok = bool(h.get("ok"))
@@ -86,17 +119,19 @@ def pool_health() -> list[dict[str, object]]:
         except Exception as exc:  # noqa: BLE001
             ok = False
             detail = f"{type(exc).__name__}: {exc}"
-        rows.append(
-            {
-                "name": plug.name,
-                "provider_id": plug.provider_id,
-                "models": list(plug.list_models()),
-                "capabilities": list(plug.capabilities),
-                "ok": ok,
-                "detail": _redact(detail),
-            }
-        )
-    return rows
+        return {
+            "name": plug.name,
+            "provider_id": plug.provider_id,
+            "models": list(plug.list_models()),
+            "capabilities": list(plug.capabilities),
+            "ok": ok,
+            "detail": _redact(detail),
+        }
+
+    if not plugs:
+        return []
+    with concurrent.futures.ThreadPoolExecutor(max_workers=len(plugs)) as pool:
+        return list(pool.map(probe, plugs))
 
 
 def bot_health() -> dict[str, object]:
@@ -221,6 +256,9 @@ class Handler(BaseHTTPRequestHandler):
 
     def do_GET(self) -> None:  # noqa: N802 - http.server API
         path = self.path.split("?", 1)[0].rstrip("/") or "/"
+        if path not in ("/", "/healthz"):
+            self._send(404, b'{"error":"not found"}', "application/json")
+            return
         rows = pool_health()
         bot = bot_health()
         if path == "/healthz":
@@ -232,10 +270,7 @@ class Handler(BaseHTTPRequestHandler):
             }
             self._send(200, json.dumps(payload, ensure_ascii=False).encode(), "application/json; charset=utf-8")
             return
-        if path == "/":
-            self._send(200, render_html(rows, bot).encode(), "text/html; charset=utf-8")
-            return
-        self._send(404, b'{"error":"not found"}', "application/json")
+        self._send(200, render_html(rows, bot).encode(), "text/html; charset=utf-8")
 
     def log_message(self, fmt: str, *args: object) -> None:  # noqa: A003
         sys.stderr.write("%s - %s\n" % (self.address_string(), fmt % args))

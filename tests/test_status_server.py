@@ -14,18 +14,40 @@ You may obtain a copy of the License at
 from __future__ import annotations
 
 import json
+import time
 from pathlib import Path
 from unittest.mock import patch
 
+import scripts.status_server as status_server
 from scripts.status_server import (
+    _probe_plugins,
     _redact,
     candidate_hosts,
     ensure_self_signed_cert,
+    pool_health,
     primary_ipv4,
     render_html,
     resolve_cert_paths,
     start_listener,
 )
+
+
+class _FakePlug:
+    """Minimal ProviderPlugin stand-in with a controllable health latency."""
+
+    def __init__(self, name: str, delay: float, ok: bool = True):
+        self.name = name
+        self.provider_id = "fake"
+        self.capabilities = ["中文"]
+        self._delay = delay
+        self._ok = ok
+
+    def health_check(self):
+        time.sleep(self._delay)
+        return {"ok": self._ok, "detail": f"probe {self.name}"}
+
+    def list_models(self):
+        return ["fake-1"]
 
 
 class TestRedact:
@@ -257,3 +279,87 @@ class TestStartListener:
             assert srv.socket.fileno() >= 0
         finally:
             srv.server_close()
+
+
+class TestHealthCache:
+    """A serial sweep of 12 pools waits on the slowest unreachable one.
+
+    The cache is what keeps page loads off that timeout path.
+    """
+
+    def setup_method(self):
+        status_server._HEALTH_CACHE = (None, 0.0)
+
+    def teardown_method(self):
+        status_server._HEALTH_CACHE = (None, 0.0)
+
+    def test_second_call_hits_the_cache(self):
+        sentinel = [{"name": "x", "ok": True, "detail": "", "models": [], "capabilities": [], "provider_id": ""}]
+        with patch.object(status_server, "_probe_all_pools", return_value=sentinel) as probe:
+            assert pool_health() is sentinel
+            assert pool_health() is sentinel
+        assert probe.call_count == 1
+
+    def test_refreshes_after_ttl(self):
+        with patch.object(status_server, "_probe_all_pools", return_value=[]) as probe:
+            pool_health()
+            # Age the entry past the TTL without sleeping for real.
+            rows, _ts = status_server._HEALTH_CACHE
+            status_server._HEALTH_CACHE = (rows, time.monotonic() - status_server.CACHE_TTL - 1)
+            pool_health()
+        assert probe.call_count == 2
+
+    def test_ttl_is_long_enough_to_absorb_timeouts(self):
+        # Below ~10s a single slow probe would still dominate page loads.
+        assert status_server.CACHE_TTL >= 10.0
+
+    def test_probes_run_in_parallel_not_serially(self):
+        # 8 pools x 0.3s = 2.4s if serial. Against a real ThreadPool this
+        # must land near the single-probe latency instead.
+        plugs = [_FakePlug(f"p{i}", delay=0.3) for i in range(8)]
+        t0 = time.monotonic()
+        rows = _probe_plugins(plugs)
+        elapsed = time.monotonic() - t0
+        assert len(rows) == 8
+        assert elapsed < 1.0, f"probing looked serial ({elapsed:.2f}s)"
+
+    def test_probe_preserves_order(self):
+        plugs = [_FakePlug(f"p{i}", delay=0.0) for i in range(5)]
+        rows = _probe_plugins(plugs)
+        assert [r["name"] for r in rows] == [f"p{i}" for i in range(5)]
+
+    def test_probe_redacts_detail(self):
+        rows = _probe_plugins([_SafeDetailPlug("api_key=AIzaSyDummyValue12345")])
+        assert "AIzaSyDummyValue12345" not in rows[0]["detail"]
+
+    def test_probe_survives_a_raising_plugin(self):
+        class Boom:
+            name = "boom"
+            provider_id = "fake"
+            capabilities = []
+
+            def health_check(self):
+                raise RuntimeError("api_key=AIzaSyDummyValue12345")
+
+            def list_models(self):
+                return []
+
+        rows = _probe_plugins([_FakePlug("ok", 0.0), Boom()])
+        assert rows[0]["ok"] is True
+        assert rows[1]["ok"] is False
+        assert "RuntimeError" in rows[1]["detail"]
+        assert "AIzaSyDummyValue12345" not in rows[1]["detail"]
+
+    def test_probe_handles_empty_plugin_list(self):
+        assert _probe_plugins([]) == []
+
+
+class _SafeDetailPlug(_FakePlug):
+    """A plugin whose health detail is hostile input for _redact."""
+
+    def __init__(self, detail: str):
+        super().__init__("hostile", delay=0.0)
+        self._detail = detail
+
+    def health_check(self):
+        return {"ok": False, "detail": self._detail}
