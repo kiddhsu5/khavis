@@ -688,7 +688,7 @@ pip install llm-router
 ### Install from source
 
 ```bash
-git clone https://github.com/kiddhsu/llm-router.git
+git clone https://github.com/kiddhsu5/llm-router.git
 cd llm-router
 pip install -e .
 ```
@@ -792,7 +792,7 @@ v0.3 has one on the roadmap. For now, `tail -F audit/requests.jsonl | jq` is the
 
 I built llm-router because I was tired of being the air traffic controller for my own subscriptions at 11:47 PM on a Tuesday.
 
-If that resonates, please [star the repo](https://github.com/kiddhsu/llm-router), open an issue, send a PR, or just send me an email telling me what you built on top of it. This project will get better only if real people use it and tell me what's wrong.
+If that resonates, please [star the repo](https://github.com/kiddhsu5/llm-router), open an issue, send a PR, or just send me an email telling me what you built on top of it. This project will get better only if real people use it and tell me what's wrong.
 
 — Kidd Hsu, 2026-09-20
 

@@ -10,7 +10,7 @@ readme = "README.md"
 requires-python = ">=3.11"
 license = { text = "Apache-2.0" }
 authors = [
-    { name = "llm-router maintainers", email = "maintainers@example.com" },
+    { name = "llm-router maintainers", email = "maintainers@kiddhsu.taipei" },
 ]
 keywords = ["llm", "router", "openai", "gemini", "ollama", "ai-gateway"]
 classifiers = [
@@ -56,10 +56,10 @@ dev = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/kiddhsu/llm-router"
-Documentation = "https://github.com/kiddhsu/llm-router/blob/main/README.md"
-Issues = "https://github.com/kiddhsu/llm-router/issues"
-Changelog = "https://github.com/kiddhsu/llm-router/blob/main/CHANGELOG.md"
+Homepage = "https://github.com/kiddhsu5/llm-router"
+Documentation = "https://github.com/kiddhsu5/llm-router/blob/main/README.md"
+Issues = "https://github.com/kiddhsu5/llm-router/issues"
+Changelog = "https://github.com/kiddhsu5/llm-router/blob/main/CHANGELOG.md"
 
 [project.scripts]
 llm-router = "scripts.start:main"

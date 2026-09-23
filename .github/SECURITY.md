@@ -29,7 +29,7 @@ We offer **two private channels** for disclosure. Use whichever you are most com
 ### Channel 1: GitHub Security Advisories (preferred)
 
 開啟一個 private security advisory:
-1. 前往 https://github.com/kiddhsu/llm-router/security/advisories/new
+1. 前往 https://github.com/kiddhsu5/llm-router/security/advisories/new
 2. 填寫漏洞詳情 (影響範圍、重現步驟、概念驗證)
 3. 提交後只有 maintainer 與 GitHub 信任的通報者會看到內容
 
@@ -40,7 +40,7 @@ This is the preferred channel because:
 
 ### Channel 2: Private email
 
-寄信至 **security@kiddhsu.dev** (placeholder — replace with real address before launch)
+寄信至 **security@kiddhsu.taipei**
 
 Subject line format: `[llm-router security] <short description>`
 
@@ -52,7 +52,7 @@ Please encrypt sensitive details using our PGP key:
 -----END PGP PUBLIC KEY BLOCK-----
 ```
 
-PGP fingerprint will be posted at https://kiddhsu.dev/pgp.txt once the domain is registered.
+PGP fingerprint will be posted at https://khavis.kiddhsu.taipei/pgp.txt.
 
 ### What to include in your report
 
@@ -215,8 +215,8 @@ Watch this repo (click "Watch" → "Custom" → "Security alerts") to receive Gi
 
 ## Contact
 
-- **Private disclosure:** security@kiddhsu.dev (PGP available)
-- **GitHub Security Advisories:** https://github.com/kiddhsu/llm-router/security/advisories/new
-- **General questions:** open a Discussion at https://github.com/kiddhsu/llm-router/discussions
+- **Private disclosure:** security@kiddhsu.taipei (PGP available)
+- **GitHub Security Advisories:** https://github.com/kiddhsu5/llm-router/security/advisories/new
+- **General questions:** open a Discussion at https://github.com/kiddhsu5/llm-router/discussions
 
 Thanks for keeping llm-router and its users safe.

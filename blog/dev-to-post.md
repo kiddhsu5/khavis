@@ -410,7 +410,7 @@ You now have llm-router running. A few things to try:
 
 5. **Add a plugin.** Want a provider I haven't shipped? `llm-router new-provider yourprovider` scaffolds it. About 80 lines.
 
-6. **Star the repo.** It genuinely helps: https://github.com/kiddhsu/llm-router
+6. **Star the repo.** It genuinely helps: https://github.com/kiddhsu5/llm-router
 
 ---
 
@@ -440,11 +440,11 @@ You now have llm-router running. A few things to try:
 
 ## Where to learn more
 
-- **README** — https://github.com/kiddhsu/llm-router
-- **Architecture doc** — https://github.com/kiddhsu/llm-router/blob/main/docs/ARCHITECTURE.md
-- **Plugin contract** — https://github.com/kiddhsu/llm-router/blob/main/providers/base.py
+- **README** — https://github.com/kiddhsu5/llm-router
+- **Architecture doc** — https://github.com/kiddhsu5/llm-router/blob/main/docs/ARCHITECTURE.md
+- **Plugin contract** — https://github.com/kiddhsu5/llm-router/blob/main/providers/base.py
 - **Roadmap** — in the launch blog post
-- **Issues & discussions** — https://github.com/kiddhsu/llm-router/issues
+- **Issues & discussions** — https://github.com/kiddhsu5/llm-router/issues
 
 ---
 

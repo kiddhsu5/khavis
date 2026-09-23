@@ -46,7 +46,7 @@
 ### Accounts setup
 
 - [ ] **GitHub** — account created, 2FA enabled (TOTP preferred over SMS)
-- [ ] **GitHub org/repo** — `github.com/kiddhsu/llm-router` created (public)
+- [ ] **GitHub org/repo** — `github.com/kiddhsu5/llm-router` created (public)
 - [ ] **PyPI** — account created at pypi.org, 2FA mandatory since 2024
 - [ ] **TestPyPI** — account created at test.pypi.org for dry-runs
 - [ ] **Docker Hub** — `kiddhsu` namespace reserved
@@ -59,7 +59,7 @@
 
 ### Domain / branding (optional)
 
-- [ ] `llm-router.dev` registered (or `llm-router.io`) — skip if cost-prohibitive; PyPI + GitHub are sufficient
+- [ ] `khavis.kiddhsu.taipei` registered (or `llm-router.io`) — skip if cost-prohibitive; PyPI + GitHub are sufficient
 - [ ] Logo / wordmark designed (Figma, or use a public-domain glyph like `→`)
 - [ ] Brand colors picked (we use a single accent — `#0EA5E9` sky-500 — in README)
 
@@ -156,7 +156,7 @@
 
 - [ ] `git log --oneline -10` — history clean, no "wip" commits
 - [ ] `git tag --list` — `v0.1.0` present, signed
-- [ ] GitHub Actions green: `https://github.com/kiddhsu/llm-router/actions`
+- [ ] GitHub Actions green: `https://github.com/kiddhsu5/llm-router/actions`
 - [ ] TestPyPI install command tested one more time
 - [ ] Docker image built and tested one more time
 - [ ] Phone silenced, calendar blocked 9 AM–noon tomorrow for launch
@@ -181,11 +181,11 @@
   - [ ] Version `0.1.0` listed
   - [ ] Description rendered
   - [ ] `pip install llm-router` works in a fresh venv
-- [ ] Verify **Docker image pushed to GHCR** at https://github.com/kiddhsu/llm-router/pkgs/container/llm-router
+- [ ] Verify **Docker image pushed to GHCR** at https://github.com/kiddhsu5/llm-router/pkgs/container/llm-router
   - [ ] Tags: `latest`, `0.1.0`, `v0.1.0`, `sha-<short>`
 - [ ] Verify **Docker image pushed to Docker Hub** at https://hub.docker.com/r/kiddhsu/llm-router
   - [ ] Tags: `latest`, `0.1.0`
-- [ ] Verify **GitHub Release published** at https://github.com/kiddhsu/llm-router/releases/tag/v0.1.0
+- [ ] Verify **GitHub Release published** at https://github.com/kiddhsu5/llm-router/releases/tag/v0.1.0
   - [ ] Release notes auto-generated from CHANGELOG
   - [ ] Wheel + sdist attached as binaries
 
@@ -196,13 +196,13 @@
   - [ ] `blog/show-hn-post.md` (98 lines, ready)
   - [ ] `blog/dev-to-post.md` (459 lines, ready)
   - [ ] `blog/zhihu-post.md` (804 lines, ready)
-- [ ] Pin a tweet: "llm-router v0.1.0 is out → https://github.com/kiddhsu/llm-router"
+- [ ] Pin a tweet: "llm-router v0.1.0 is out → https://github.com/kiddhsu5/llm-router"
 
 ### Afternoon (US time = your evening)
 
 - [ ] **Submit Show HN** at 9:00 AM ET sharp (set an alarm)
   - [ ] Title: `Show HN: llm-router – One endpoint for 12 LLM providers (BYOK)`
-  - [ ] URL: `https://github.com/kiddhsu/llm-router`
+  - [ ] URL: `https://github.com/kiddhsu5/llm-router`
   - [ ] First comment: pre-written technical depth (use `blog/show-hn-post.md` first comment block as base)
   - [ ] Tag: `python`, `open-source`, `llm`, `ai-infrastructure`
 - [ ] **Post Twitter thread** at the same instant (within 5 min of HN submission)

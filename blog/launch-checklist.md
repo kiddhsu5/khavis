@@ -14,7 +14,7 @@
 
 - [ ] **GitHub repo created** — `kiddhsu/llm-router` (public, default branch `main`)
 - [ ] **Repo description set** — `One endpoint for 12 LLM providers with zero quota interruption. Apache 2.0.`
-- [ ] **Website URL set** — `https://llm-router.dev` (placeholder if no site yet)
+- [ ] **Website URL set** — `https://khavis.kiddhsu.taipei` (placeholder if no site yet)
 - [ ] **Topics set** — `llm`, `openai`, `anthropic`, `router`, `python`, `open-source`, `byok`, `multi-agent`, `capability-routing`
 - [ ] **README polished** — title, tagline, badges, quick-start, links, hero ASCII diagram
 - [ ] **README.zh-TW.md** translated and synced
@@ -67,7 +67,7 @@
 
 ### Website / landing page (if you have one)
 
-- [ ] **Domain registered** — `llm-router.dev` (placeholder if no real site)
+- [ ] **Domain registered** — `khavis.kiddhsu.taipei` (placeholder if no real site)
 - [ ] **GitHub Pages** site built — `index.md` with tagline, hero code snippet, links to GitHub + docs
 - [ ] **Custom 404** in place
 
@@ -202,7 +202,7 @@ By day 7 you should know whether the launch worked or didn't.
 - [ ] **Issue count** — open vs closed, average response time
 - [ ] **PR count** — open vs merged, average review time
 - [ ] **Discord/Slack members** (if set up)
-- [ ] **NPM-style "used by" count** — check `https://github.com/kiddhsu/llm-router/network/dependents`
+- [ ] **NPM-style "used by" count** — check `https://github.com/kiddhsu5/llm-router/network/dependents`
 
 ### Communication cadence
 

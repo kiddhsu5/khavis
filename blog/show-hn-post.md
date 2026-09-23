@@ -55,7 +55,7 @@ If the pool selected returns a 429 or 5xx, the request silently retries with the
 
 Python 3.11+, `openai` SDK for OpenAI-compatible providers, the `anthropic` SDK for Claude, PyYAML for config, FastAPI for the HTTP daemon, SQLite for episodic memory. About 1,400 lines of core + 12 ~80-line plugins. Apache 2.0.
 
-GitHub: https://github.com/kiddhsu/llm-router
+GitHub: https://github.com/kiddhsu5/llm-router
 PyPI: `pip install llm-router`
 
 Happy to answer technical questions in the comments.

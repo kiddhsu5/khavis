@@ -9,7 +9,7 @@
 
 | Role | Name | Contact |
 |------|------|---------|
-| **Creator & Lead Maintainer** | Kidd Hsu | [@kiddhsu](https://github.com/kiddhsu) · maintainers@example.com |
+| **Creator & Lead Maintainer** | Kidd Hsu | [@kiddhsu5](https://github.com/kiddhsu5) · maintainers@kiddhsu.taipei |
 | _open_ | — | — |
 
 > Solo maintainer for v0.1.0; co-maintainer slots open at T+90 days once the project has >500 stars.
@@ -44,7 +44,7 @@
 
 <!-- Add yourself: - [ ] @username ([#PR-number](url)) — emoji emoji emoji -->
 <!-- Example:
-- [x] @kiddhsu ([#1](https://github.com/kiddhsu/llm-router/pull/1)) 💻 📖 ⚠️
+- [x] @kiddhsu5 ([#1](https://github.com/kiddhsu5/llm-router/pull/1)) 💻 📖 ⚠️
 -->
 
 - [ ] _your handle here_
@@ -53,7 +53,7 @@
 
 <!-- Add yourself: - [ ] @username ([#issue-number](url)) -->
 <!-- Example:
-- [x] @anon-reporter ([#42](https://github.com/kiddhsu/llm-router/issues/42))
+- [x] @anon-reporter ([#42](https://github.com/kiddhsu5/llm-router/issues/42))
 -->
 
 - [ ] _your handle here_
@@ -92,7 +92,7 @@ After your first merged PR, add yourself in one of three ways:
 1. Open a PR to `CONTRIBUTORS.md`
 2. Add a line under the appropriate section:
    ```markdown
-   - [x] @your-handle ([#PR](https://github.com/kiddhsu/llm-router/pull/N)) 💻 ⚠️
+   - [x] @your-handle ([#PR](https://github.com/kiddhsu5/llm-router/pull/N)) 💻 ⚠️
    ```
 3. A maintainer will merge and the bot will regenerate the table
 

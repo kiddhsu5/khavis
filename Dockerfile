@@ -22,7 +22,7 @@ FROM python:3.12-slim AS runtime
 LABEL org.opencontainers.image.title="llm-router" \
       org.opencontainers.image.description="A plugin-based router for multiple LLM providers" \
       org.opencontainers.image.licenses="Apache-2.0" \
-      org.opencontainers.image.source="https://github.com/kiddhsu/llm-router"
+      org.opencontainers.image.source="https://github.com/kiddhsu5/llm-router"
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \

@@ -690,7 +690,7 @@ pip install llm-router
 ### 從 source 安裝
 
 ```bash
-git clone https://github.com/kiddhsu/llm-router.git
+git clone https://github.com/kiddhsu5/llm-router.git
 cd llm-router
 pip install -e .
 ```
@@ -794,7 +794,7 @@ v0.3 的 roadmap 有一個。在那之前，`tail -F audit/requests.jsonl | jq` 
 
 我做 llm-router 是因為我受夠了在週二 11:47 PM 當我自己訂閱的空中交通管制員。
 
-如果有共鳴，請 [star 這個 repo](https://github.com/kiddhsu/llm-router)、開 issue、送 PR、或只是寄 email 跟我說你用它做了什麼。這個專案只有在真實的人用它、跟我講哪裡出錯的時候才會變得更好。
+如果有共鳴，請 [star 這個 repo](https://github.com/kiddhsu5/llm-router)、開 issue、送 PR、或只是寄 email 跟我說你用它做了什麼。這個專案只有在真實的人用它、跟我講哪裡出錯的時候才會變得更好。
 
 — Kidd Hsu, 2026-09-20
 

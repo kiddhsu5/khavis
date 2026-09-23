@@ -182,7 +182,7 @@ A 12-tweet launch thread announcing llm-router. Each tweet is numbered and cappe
 >
 > star it, try it on a real workload, open issues, send a PR, translate the README.
 >
-> github: https://github.com/kiddhsu/llm-router
+> github: https://github.com/kiddhsu5/llm-router
 >
 > built by 1 person. nights + weekends. for the same reason you might use it.
 
