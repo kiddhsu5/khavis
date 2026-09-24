@@ -55,6 +55,9 @@ htmlcov/
 deploy/.env
 deploy/certs/*.pem
 
+# Handoff — hosts, key paths, credential locations. The repo is public.
+HANDOFF.local.md
+
 # Project runtime data
 memory/episodic.sqlite
 memory/episodic.sqlite-journal
