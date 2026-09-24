@@ -81,12 +81,17 @@ pools:
 
   - name: "Ollama-Mac"
     provider_id: "ollama"
-    endpoint: "http://localhost:11434"
+    # Over Tailscale, not localhost: the router frequently runs on a cloud
+    # VM whose own Ollama is a different box with different models. Left at
+    # localhost this pool reported healthy (endpoint 200) and then 404'd on
+    # chat, because the model lives on the Mac.
+    endpoint: "http://${MAC_IP}:11434"
     model: "gemma4:e2b"
     env_key: null
 
   - name: "Ollama-Surface"
     provider_id: "ollama"
+    # Tailscale IP too — 192.168.x.x is unreachable from a cloud origin.
     endpoint: "http://${SURFACE_IP}:11434"
     model: "qwen2.5:1.5b"
     env_key: null

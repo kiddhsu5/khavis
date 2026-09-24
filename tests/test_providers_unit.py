@@ -30,7 +30,13 @@ from providers.gemini import GeminiPlugin
 from providers.glm import GLMPlugin
 from providers.MiniMax import MiniMaxPlugin
 from providers.nvidia import NvidiaPlugin
-from providers.ollama import DEFAULT_MODEL, OllamaPlugin, _normalize_model
+from providers.ollama import (
+    DEFAULT_MODEL,
+    OllamaPlugin,
+    _expand_env,
+    _model_available,
+    _normalize_model,
+)
 from providers.openai import OpenAIPlugin
 from providers.openrouter import OpenRouterPlugin
 from providers.volcano import (
@@ -611,11 +617,35 @@ class TestAnthropicPlugin:
 # ---------------------------------------------------------------------------
 class TestOllamaPlugin:
     def test_mac_defaults(self, monkeypatch):
+        monkeypatch.delenv("MAC_IP", raising=False)
         monkeypatch.delenv("SURFACE_IP", raising=False)
         p = OllamaPlugin(name="Ollama-Mac")
         assert p.name == "Ollama-Mac"
-        assert p.default_endpoint == "http://localhost:11434"
+        # Deliberately NOT localhost. The router often runs on a cloud VM
+        # whose own Ollama is a different box with different models; when
+        # this defaulted to localhost the pool reported healthy and then
+        # 404'd on chat. Unresolved -> "<var>.local", so the mistake is
+        # visible in health output instead of a confusing DNS error.
+        assert p.default_endpoint == "http://mac_ip.local:11434"
         assert p.api_key is None
+
+    def test_mac_expands_ip(self, monkeypatch):
+        monkeypatch.setenv("MAC_IP", "100.93.218.41")
+        p = OllamaPlugin(name="Ollama-Mac")
+        assert p.default_endpoint == "http://100.93.218.41:11434"
+
+    def test_mac_expands_placeholder_in_url(self, monkeypatch):
+        monkeypatch.setenv("MAC_IP", "100.84.125.31")
+        p = OllamaPlugin(name="Ollama-Mac", base_url="http://${MAC_IP}:11434")
+        assert p.default_endpoint == "http://100.84.125.31:11434"
+
+    def test_expand_env_handles_multiple_placeholders(self, monkeypatch):
+        monkeypatch.setenv("MAC_IP", "100.84.125.31")
+        monkeypatch.delenv("SURFACE_IP", raising=False)
+        assert _expand_env("http://${MAC_IP}:${SURFACE_IP}") == "http://100.84.125.31:surface_ip.local"
+
+    def test_expand_env_ignores_unrelated_text(self):
+        assert _expand_env("http://localhost:11434") == "http://localhost:11434"
 
     def test_surface_expands_ip(self, monkeypatch):
         monkeypatch.setenv("SURFACE_IP", "10.0.0.5")
@@ -673,6 +703,87 @@ class TestOllamaPlugin:
         assert _normalize_model(None) is None
         assert _normalize_model("") == ""
 
+    # -- health_check: reachability is not enough -------------------------
+    @staticmethod
+    def _tags_response(names: list[str], status: int = 200) -> MagicMock:
+        resp = MagicMock()
+        resp.status_code = status
+        resp.json.return_value = {"models": [{"name": n} for n in names]}
+        return resp
+
+    def test_health_ok_when_model_is_pulled(self):
+        p = OllamaPlugin(name="Ollama-Mac", model="gemma4:e2b")
+        with patch(
+            "providers.ollama.requests.get",
+            return_value=self._tags_response(["gemma4:e2b", "qwen2.5:3b"]),
+        ):
+            h = p.health_check()
+        assert h["ok"] is True
+        assert "gemma4:e2b" in h["detail"]
+
+    def test_health_fails_when_model_missing(self):
+        # The regression this guards: endpoint answers 200, so the old
+        # check said "healthy", and chat() then 404'd.
+        p = OllamaPlugin(name="Ollama-Mac", model="gemma4:e2b")
+        with patch(
+            "providers.ollama.requests.get",
+            return_value=self._tags_response(["qwen2.5:3b"]),
+        ) as get:
+            h = p.health_check()
+        assert h["ok"] is False
+        assert "not pulled" in h["detail"]
+        assert "gemma4:e2b" in h["detail"]
+        # And it must consult /api/tags, not just GET /.
+        assert get.call_args.args[0].endswith("/api/tags")
+
+    def test_health_reports_what_is_available(self):
+        p = OllamaPlugin(name="Ollama-Mac", model="gemma4:e2b")
+        with patch(
+            "providers.ollama.requests.get",
+            return_value=self._tags_response(["qwen2.5:3b", "qwen3:4b"]),
+        ):
+            h = p.health_check()
+        assert "qwen2.5:3b" in h["detail"] and "qwen3:4b" in h["detail"]
+
+    def test_health_fails_on_unreachable_endpoint(self):
+        p = OllamaPlugin(name="Ollama-Surface")
+        with patch("providers.ollama.requests.get", side_effect=OSError("refused")):
+            h = p.health_check()
+        assert h["ok"] is False
+        assert "refused" in h["detail"]
+
+    def test_health_fails_on_server_error(self):
+        p = OllamaPlugin(name="Ollama-Mac", model="gemma4:e2b")
+        with patch(
+            "providers.ollama.requests.get",
+            return_value=self._tags_response([], status=503),
+        ):
+            assert p.health_check()["ok"] is False
+
+    def test_health_tolerates_non_json_body(self):
+        p = OllamaPlugin(name="Ollama-Mac", model="gemma4:e2b")
+        resp = MagicMock()
+        resp.status_code = 200
+        resp.json.side_effect = ValueError("not json")
+        with patch("providers.ollama.requests.get", return_value=resp):
+            assert p.health_check()["ok"] is False
+
+    def test_health_without_model_only_needs_reachability(self):
+        # ``__init__`` falls back to DEFAULT_MODEL when model is falsy, so
+        # the "no model configured" path is only reachable via the helper.
+        assert _model_available(set(), "") is True
+        assert _model_available(set(), None) is True  # type: ignore[arg-type]
+
+    def test_model_available_matching_rules(self):
+        assert _model_available({"gemma4:e2b"}, "gemma4:e2b")
+        # untagged request matches any tag of that name
+        assert _model_available({"gemma4:e2b", "gemma4:latest"}, "gemma4")
+        # tagged request must match exactly
+        assert not _model_available({"gemma4:latest"}, "gemma4:e2b")
+        assert not _model_available(set(), "gemma4:e2b")
+        assert _model_available(set(), "")
+        assert _model_available({"x"}, "ollama/x")
+
     def test_chat_handles_missing_message(self):
         p = OllamaPlugin(name="Ollama-Mac")
         fake_resp = MagicMock()
@@ -700,17 +811,25 @@ class TestOllamaPlugin:
             assert p.list_models() == []
 
     def test_health_ok_on_200(self):
-        p = OllamaPlugin(name="Ollama-Mac")
+        p = OllamaPlugin(name="Ollama-Mac", model="gemma4:e2b")
         fake_resp = MagicMock(status_code=200)
+        fake_resp.json.return_value = {"models": [{"name": "gemma4:e2b"}]}
         with patch("providers.ollama.requests.get", return_value=fake_resp):
             assert p.health_check()["ok"] is True
 
-    def test_health_ok_on_4xx(self):
-        p = OllamaPlugin(name="Ollama-Mac")
+    def test_health_not_ok_on_4xx(self):
+        # Contract change: we probe /api/tags, which a healthy Ollama
+        # serves. A 404 there means the endpoint is not Ollama (or is
+        # misconfigured), so it must NOT report healthy.
+        #
+        # The previous check probed GET / and passed anything below 500,
+        # with the comment "Ollama returns 404 for /". That leniency is
+        # what let Ollama-Mac show green while chat() 404'd.
+        p = OllamaPlugin(name="Ollama-Mac", model="gemma4:e2b")
         fake_resp = MagicMock(status_code=404)
+        fake_resp.json.return_value = {}
         with patch("providers.ollama.requests.get", return_value=fake_resp):
-            # 404 < 500 so we treat it as "ok" — Ollama returns 404 for /.
-            assert p.health_check()["ok"] is True
+            assert p.health_check()["ok"] is False
 
     def test_health_not_ok_on_5xx(self):
         p = OllamaPlugin(name="Ollama-Mac")

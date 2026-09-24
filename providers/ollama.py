@@ -16,6 +16,7 @@ limitations under the License.
 from __future__ import annotations
 
 import os
+import re
 from typing import Any
 
 import requests
@@ -24,7 +25,9 @@ from .base import ProviderPlugin
 
 DEFAULT_MODEL = "gemma4:e2b"
 SURFACE_IP_ENV = "SURFACE_IP"
+MAC_IP_ENV = "MAC_IP"
 _OPENAI_COMPAT_PREFIX = "ollama/"
+_PLACEHOLDER_RE = re.compile(r"\$\{([A-Za-z_][A-Za-z0-9_]*)\}")
 
 
 def _normalize_model(model: str | None) -> str | None:
@@ -41,6 +44,43 @@ def _normalize_model(model: str | None) -> str | None:
     if model.startswith(_OPENAI_COMPAT_PREFIX):
         return model[len(_OPENAI_COMPAT_PREFIX) :]
     return model
+
+
+def _expand_env(text: str) -> str:
+    """Resolve ``${VAR}`` placeholders from the environment.
+
+    An unresolved placeholder becomes ``<var>.local`` rather than being
+    left in place: a URL still containing ``${...}`` is not a resolvable
+    endpoint and would only fail later with a confusing DNS error. The
+    ``.local`` name makes the misconfiguration obvious in health output.
+
+    Both ``${MAC_IP}`` and ``${SURFACE_IP}`` go through here — the pools
+    live on a Tailscale network whose addresses vary per deployment, so
+    they belong in ``.env``, not in the tracked ``pools.yaml``.
+    """
+
+    def _sub(match: re.Match[str]) -> str:
+        var = match.group(1)
+        return os.getenv(var) or f"{var.lower()}.local"
+
+    return _PLACEHOLDER_RE.sub(_sub, text)
+
+
+def _model_available(available: set[str], want: str) -> bool:
+    """Is ``want`` in Ollama's tag list?
+
+    An untagged request (``gemma4``) matches any tag of that name; a
+    tagged one (``gemma4:e2b``) must match exactly, because Ollama treats
+    those as distinct models and will 404 on a mismatch.
+    """
+    want = _normalize_model(want) or ""
+    if not want:
+        return True
+    if want in available:
+        return True
+    if ":" not in want:
+        return any(a.split(":", 1)[0] == want for a in available)
+    return False
 
 
 class OllamaPlugin(ProviderPlugin):
@@ -60,7 +100,10 @@ class OllamaPlugin(ProviderPlugin):
     _plugin_instances = [
         {
             "name": "Ollama-Mac",
-            "base_url": "http://localhost:11434",
+            # Tailscale address of the Mac, not localhost: the router is
+            # frequently deployed on a cloud VM whose own Ollama is a
+            # different box with different models.
+            "base_url": "http://${MAC_IP}:11434",
             "model": "gemma4:e2b",
         },
         {
@@ -81,16 +124,11 @@ class OllamaPlugin(ProviderPlugin):
     ) -> None:
         if base_url is None:
             if name.lower().startswith("ollama-surface"):
-                surface_ip = os.getenv(SURFACE_IP_ENV)
-                base_url = (
-                    f"http://{surface_ip}:11434" if surface_ip else "http://surface.local:11434"
-                )
+                base_url = f"http://${{{SURFACE_IP_ENV}}}:11434"
             else:
-                base_url = "http://localhost:11434"
-        # Expand ${SURFACE_IP} placeholders sourced from pools.yaml.
-        if "${SURFACE_IP}" in base_url:
-            surface_ip = os.getenv(SURFACE_IP_ENV, "surface.local")
-            base_url = base_url.replace("${SURFACE_IP}", surface_ip)
+                base_url = f"http://${{{MAC_IP_ENV}}}:11434"
+        # Expand ${VAR} placeholders sourced from pools.yaml.
+        base_url = _expand_env(base_url)
         super().__init__(
             name=name,
             endpoint=base_url,
@@ -146,11 +184,47 @@ class OllamaPlugin(ProviderPlugin):
             return []
 
     def health_check(self) -> dict[str, Any]:
+        """Reachability *and* that the configured model is actually pulled.
+
+        Checking only that the endpoint answers is not enough. A pool whose
+        model is missing reports healthy (``/`` returns 200) and then 404s
+        on ``/api/chat`` — which is exactly what hid behind Ollama-Mac when
+        it pointed at a box without ``gemma4:e2b``.
+        """
+        tags_url = f"{self.default_endpoint.rstrip('/')}/api/tags"
         try:
-            resp = requests.get(self.default_endpoint, timeout=5)
-            ok = resp.status_code < 500
-            detail = f"endpoint={self.default_endpoint} status={resp.status_code}"
+            resp = requests.get(tags_url, timeout=5)
         except Exception as exc:  # pragma: no cover - network failure
-            ok = False
-            detail = f"endpoint={self.default_endpoint} error={exc!r}"
-        return {"ok": ok, "detail": detail}
+            return {"ok": False, "detail": f"endpoint={self.default_endpoint} error={exc!r}"}
+
+        if resp.status_code >= 500:
+            return {
+                "ok": False,
+                "detail": f"endpoint={self.default_endpoint} status={resp.status_code}",
+            }
+
+        try:
+            payload: Any = resp.json()
+        except ValueError:
+            payload = {}
+        models = payload.get("models") if isinstance(payload, dict) else None
+        available = {
+            str(m.get("name") or m.get("model") or "")
+            for m in (models or [])
+            if isinstance(m, dict)
+        }
+
+        want = _normalize_model(self.model) or ""
+        if want and not _model_available(available, want):
+            have = ", ".join(sorted(a for a in available if a)[:6]) or "none"
+            return {
+                "ok": False,
+                "detail": (
+                    f"endpoint={self.default_endpoint} reachable but model "
+                    f"{want!r} not pulled (have: {have})"
+                ),
+            }
+        return {
+            "ok": True,
+            "detail": f"endpoint={self.default_endpoint} model={want or '-'} available",
+        }
