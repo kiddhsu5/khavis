@@ -13,11 +13,17 @@ You may obtain a copy of the License at
 
 from __future__ import annotations
 
+import gc
+import http.client
 import json
+import socket
+import ssl
 import threading
 import time
 from pathlib import Path
 from unittest.mock import patch
+
+import pytest
 
 import scripts.status_server as status_server
 from scripts.status_server import (
@@ -282,6 +288,88 @@ class TestStartListener:
             srv.server_close()
 
 
+class TestTLSListener:
+    """The HTTPS listener must survive its own construction.
+
+    ``srv.socket = ctx.wrap_socket(srv.socket, ...)`` drops the last
+    reference to the original socket; its ``__del__`` closes the shared fd
+    and the listener silently disappears. Seen in production as a
+    "listening on https://..." log line followed by connection-refused and
+    an ``ss -ltn`` row with a growing ``Recv-Q``.
+    """
+
+    @staticmethod
+    def _ctx(tmp_path: Path) -> "ssl.SSLContext":
+        cert, key = tmp_path / "cert.pem", tmp_path / "key.pem"
+        assert ensure_self_signed_cert(cert, key), "could not mint a test cert"
+        ctx = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+        ctx.load_cert_chain(str(cert), str(key))
+        return ctx
+
+    def test_listen_socket_survives_gc(self, tmp_path: Path):
+        got = start_listener("https", "127.0.0.1", 0, wrap_ssl=self._ctx(tmp_path))
+        assert got is not None
+        _label, srv, _thread = got
+        try:
+            gc.collect()
+            assert srv.socket.fileno() >= 0, "listening socket was closed by GC"
+            # ... and the fd is still actually listening.
+            assert srv.socket.getsockname()[1] > 0
+        finally:
+            srv.server_close()
+
+    def test_serves_https_end_to_end(self, tmp_path: Path):
+        got = start_listener("https", "127.0.0.1", 0, wrap_ssl=self._ctx(tmp_path))
+        assert got is not None
+        _label, srv, thread = got
+        port = srv.server_address[1]
+        try:
+            thread.start()
+            conn = http.client.HTTPSConnection(
+                "127.0.0.1", port, timeout=5, context=ssl._create_unverified_context()
+            )
+            try:
+                conn.request("GET", "/healthz")
+                resp = conn.getresponse()
+                assert resp.status == 200
+                json.loads(resp.read())
+            finally:
+                conn.close()
+        finally:
+            srv.shutdown()
+            srv.server_close()
+
+    def test_plain_http_to_tls_port_does_not_wedge_the_listener(self, tmp_path: Path):
+        # A scanner sending plain HTTP at :443 must cost one connection,
+        # not the accept loop. The handshake failure surfaces as OSError
+        # from get_request(), which socketserver treats as "skip it".
+        got = start_listener("https", "127.0.0.1", 0, wrap_ssl=self._ctx(tmp_path))
+        assert got is not None
+        _label, srv, thread = got
+        port = srv.server_address[1]
+        try:
+            thread.start()
+            with socket.create_connection(("127.0.0.1", port), timeout=5) as raw:
+                with pytest.raises(Exception):
+                    raw.sendall(b"GET / HTTP/1.1\r\nHost: x\r\n\r\n")
+                    raw.settimeout(5)
+                    data = raw.recv(64)
+                    if not data:
+                        raise ConnectionError("closed without a TLS handshake")
+            # Listener is still accepting.
+            conn = http.client.HTTPSConnection(
+                "127.0.0.1", port, timeout=5, context=ssl._create_unverified_context()
+            )
+            try:
+                conn.request("GET", "/healthz")
+                assert conn.getresponse().status == 200
+            finally:
+                conn.close()
+        finally:
+            srv.shutdown()
+            srv.server_close()
+
+
 class TestHealthCache:
     """A sweep of 12 pools waits on the slowest unreachable one.
 
@@ -289,12 +377,31 @@ class TestHealthCache:
     """
 
     def setup_method(self):
+        self._drain_refresher()
         status_server._HEALTH_CACHE = (None, 0.0)
         status_server._REFRESHING = False
+        status_server._PLUG_CACHE = None
 
     def teardown_method(self):
+        self._drain_refresher()
         status_server._HEALTH_CACHE = (None, 0.0)
         status_server._REFRESHING = False
+        status_server._PLUG_CACHE = None
+
+    @staticmethod
+    def _drain_refresher(timeout: float = 5.0) -> None:
+        """Wait out a sweep left running by a previous test.
+
+        The cold path now kicks a background sweep, so a test that returns
+        before it lands has its cache overwritten after ``setup_method``
+        resets it. Without this the class is order-dependent and failures
+        show up in whichever test happens to run second.
+        """
+        deadline = time.monotonic() + timeout
+        while time.monotonic() < deadline:
+            if not status_server._REFRESHING:
+                return
+            time.sleep(0.01)
 
     @staticmethod
     def _age_cache_by(seconds: float) -> None:
@@ -316,17 +423,71 @@ class TestHealthCache:
             time.sleep(0.01)
         return False
 
-    def test_first_call_blocks_and_populates(self):
-        sentinel = [{"name": "x", "ok": True, "detail": "", "models": [], "capabilities": [], "provider_id": ""}]
-        with patch.object(status_server, "_probe_all_pools", return_value=sentinel) as probe:
-            assert pool_health() is sentinel
-        assert probe.call_count == 1
+    def test_cold_path_returns_immediately_and_kicks_one_sweep(self):
+        # The bug this pins down: the first request used to run the sweep
+        # inline and hold the visitor for ~20s, past Cloudflare's ~15s
+        # origin timeout, so the page answered 522 right after every restart.
+        gate = threading.Event()
+        started = threading.Event()
+
+        def slow_probe():
+            started.set()
+            gate.wait(timeout=5)
+            return [{"name": "x", "ok": True, "detail": "", "models": [], "capabilities": [], "provider_id": ""}]
+
+        try:
+            with patch.object(status_server, "_probe_all_pools", side_effect=slow_probe) as probe:
+                t0 = time.monotonic()
+                rows = pool_health()
+                elapsed = time.monotonic() - t0
+                assert elapsed < 0.5, f"cold path blocked for {elapsed:.2f}s"
+                assert rows, "placeholder rows expected while warming"
+                assert all(r.get("ok") is None for r in rows), "warming must not read as up or down"
+                assert status_server.WARMING_DETAIL in str(rows[0].get("detail"))
+                assert started.wait(timeout=2), "background sweep never started"
+                assert probe.call_count == 1
+        finally:
+            gate.set()
+
+    def test_cold_path_single_flight_under_concurrency(self):
+        slow = threading.Event()
+
+        def blocking():
+            slow.wait(timeout=5)
+            return []
+
+        try:
+            with patch.object(status_server, "_probe_all_pools", side_effect=blocking) as probe:
+                threads = [threading.Thread(target=pool_health) for _ in range(12)]
+                for t in threads:
+                    t.start()
+                for t in threads:
+                    t.join(timeout=2)
+                slow.set()
+                time.sleep(0.2)
+            assert probe.call_count == 1, f"{probe.call_count} sweeps for 12 cold hits"
+        finally:
+            slow.set()
+
+    def test_warm_up_swallows_probe_errors(self):
+        # A failing sweep must not stop the daemon from binding its ports.
+        with patch.object(status_server, "_kick_refresh", side_effect=RuntimeError("boom")):
+            status_server.warm_cache()  # must not raise
+
+    def test_cache_state_reports_warming(self):
+        state = status_server.cache_state()
+        assert state["age_s"] is None
+        assert state["warming"] is True
 
     def test_second_call_hits_the_cache(self):
-        with patch.object(status_server, "_probe_all_pools", return_value=[]) as probe:
-            pool_health()
-            pool_health()
-        assert probe.call_count == 1
+        sentinel = [{"name": "x", "ok": True, "detail": "", "models": [], "capabilities": [], "provider_id": ""}]
+        with patch.object(status_server, "_probe_all_pools", return_value=sentinel):
+            pool_health()  # cold: placeholder + background sweep
+            assert self._wait_for(lambda: status_server._HEALTH_CACHE[0] is sentinel)
+            t0 = time.monotonic()
+            assert pool_health() is sentinel
+            assert time.monotonic() - t0 < 0.2
+            assert status_server.cache_state()["warming"] is False
 
     def test_stale_value_is_served_without_waiting(self):
         # The whole point: a TTL expiry must not put a 20s probe in front
@@ -334,39 +495,40 @@ class TestHealthCache:
         first = [{"name": "old", "ok": True, "detail": "", "models": [], "capabilities": [], "provider_id": ""}]
         second = [{"name": "new", "ok": True, "detail": "", "models": [], "capabilities": [], "provider_id": ""}]
         gate = threading.Event()
-        n = 0
 
         def probe_fn():
-            nonlocal n
-            n += 1
-            if n == 1:
-                return first
             gate.wait(timeout=5)  # hold the refresher until we say so
             return second
 
-        with patch.object(status_server, "_probe_all_pools", side_effect=probe_fn) as probe:
-            assert pool_health() is first
-            self._age_cache_by(status_server.CACHE_TTL + 1)
-            t0 = time.monotonic()
-            assert pool_health() is first  # stale, served immediately
-            assert time.monotonic() - t0 < 0.2
-            assert probe.call_count == 2  # the refresher did start
+        try:
+            with patch.object(status_server, "_probe_all_pools", side_effect=probe_fn) as probe:
+                # Seed directly. The cold path has its own test; this one is
+                # about TTL expiry only.
+                status_server._HEALTH_CACHE = (first, time.monotonic())
+                self._age_cache_by(status_server.CACHE_TTL + 1)
+                t0 = time.monotonic()
+                assert pool_health() is first  # stale, served immediately
+                assert time.monotonic() - t0 < 0.2
+                assert probe.call_count == 1  # the refresher did start
+                gate.set()
+                assert self._wait_for(lambda: status_server._HEALTH_CACHE[0] is second)
+                assert pool_health() is second
+        finally:
             gate.set()
-            assert self._wait_for(lambda: pool_health() is second)
-            assert pool_health() is second
 
     def test_concurrent_stale_hits_start_only_one_refresh(self):
-        with patch.object(status_server, "_probe_all_pools", return_value=[]) as probe:
-            pool_health()
-            self._age_cache_by(status_server.CACHE_TTL + 1)
+        # Seed directly so the cold path's own sweep is not counted here.
+        status_server._HEALTH_CACHE = ([{"name": "seed", "ok": True, "detail": "", "models": [], "capabilities": [], "provider_id": ""}], time.monotonic())
+        self._age_cache_by(status_server.CACHE_TTL + 1)
 
-            slow = threading.Event()
+        slow = threading.Event()
 
-            def blocking():
-                slow.wait(timeout=5)
-                return []
+        def blocking():
+            slow.wait(timeout=5)
+            return []
 
-            with patch.object(status_server, "_probe_all_pools", side_effect=blocking) as probe2:
+        try:
+            with patch.object(status_server, "_probe_all_pools", side_effect=blocking) as probe:
                 threads = [threading.Thread(target=pool_health) for _ in range(12)]
                 for t in threads:
                     t.start()
@@ -375,8 +537,9 @@ class TestHealthCache:
                 slow.set()
                 # Give a second, unwanted refresh a chance to appear.
                 time.sleep(0.2)
-            assert probe2.call_count == 1, "single-flight failed"
-            assert probe.call_count == 1
+            assert probe.call_count == 1, "single-flight failed"
+        finally:
+            slow.set()
 
     def test_ttl_is_long_enough_to_absorb_timeouts(self):
         # Below ~10s a single slow probe would still dominate refreshes.

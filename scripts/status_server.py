@@ -67,28 +67,80 @@ CACHE_TTL = 30.0
 _HEALTH_CACHE: tuple[list[dict[str, object]] | None, float] = (None, 0.0)
 _CACHE_LOCK = threading.Lock()
 _REFRESHING = False
+_PLUG_CACHE: list | None = None  # registry snapshot; see _load_plugins()
+WARMING_DETAIL = "warming up — first sweep in progress"
+
+
+def cache_state() -> dict[str, object]:
+    """How stale is what we are about to serve? Surfaced on ``/healthz``.
+
+    Operators staring at a 522-shaped problem need to tell "the router is
+    down" apart from "you are looking at placeholder rows".
+    """
+    rows, cached_at = _HEALTH_CACHE
+    with _CACHE_LOCK:
+        warming = _REFRESHING or rows is None
+    return {
+        "age_s": None if rows is None else round(time.monotonic() - cached_at, 3),
+        "warming": warming,
+    }
 
 
 def pool_health() -> list[dict[str, object]]:
-    """Return one row per registered pool. Never raises.
+    """Return one row per registered pool. Never raises, and never blocks.
 
     Stale-while-revalidate. A sweep costs as long as the slowest
     unreachable endpoint (a home-LAN Ollama burns its whole connect
     timeout — ~20s here), so a TTL-expiry must never land on a visitor.
-    Past the TTL the previous rows are returned immediately and a single
-    background thread refreshes them. Only the very first request, with
-    nothing cached at all, has to wait.
+
+    The cold path must not block either, which is the whole point of this
+    function. Cloudflare gives up on an origin after ~15s and answers 522,
+    so a first request that waits out a 20s sweep turns *everyone* who
+    loads the page right after a restart into a 522 — including the
+    uptime check that would otherwise tell us the service is fine. Serve
+    placeholder rows immediately and let the sweep fill them in.
     """
     global _HEALTH_CACHE  # noqa: PLW0603 - module-level memo is intended
 
     rows, cached_at = _HEALTH_CACHE
-    if rows is None:
-        rows = _probe_all_pools()
-        _HEALTH_CACHE = (rows, time.monotonic())
+    if rows is not None:
+        if (time.monotonic() - cached_at) >= CACHE_TTL:
+            _kick_refresh()
         return rows
-    if (time.monotonic() - cached_at) >= CACHE_TTL:
-        _kick_refresh()
-    return rows
+
+    _kick_refresh()
+    return _placeholder_rows()
+
+
+def _placeholder_rows() -> list[dict[str, object]]:
+    """Rows for a sweep that has not landed yet. ``ok`` is None, not False.
+
+    None keeps the page honest: the pools are not down, we simply have not
+    looked yet. ``False`` would light the summary red and make an operator
+    chase a phantom outage.
+    """
+    try:
+        plugs = _load_plugins()
+    except Exception as exc:  # noqa: BLE001 - placeholder must not raise
+        return [{
+            "name": "registry",
+            "provider_id": "",
+            "models": [],
+            "capabilities": [],
+            "ok": None,
+            "detail": _redact(f"warming up ({type(exc).__name__})"),
+        }]
+    return [
+        {
+            "name": getattr(p, "name", "?"),
+            "provider_id": getattr(p, "provider_id", ""),
+            "models": list(getattr(p, "models", None) or ([p.model] if getattr(p, "model", None) else [])),
+            "capabilities": list(getattr(p, "capabilities", None) or []),
+            "ok": None,
+            "detail": WARMING_DETAIL,
+        }
+        for p in plugs
+    ]
 
 
 def _kick_refresh() -> None:
@@ -113,23 +165,40 @@ def _kick_refresh() -> None:
     threading.Thread(target=run, daemon=True, name="khavis-health-refresh").start()
 
 
+def warm_cache() -> None:
+    """Fill the cache before anyone asks. Failures must not stop startup."""
+    try:
+        _kick_refresh()
+    except Exception as exc:  # noqa: BLE001 - warm-up is best-effort
+        print(f"warm-up failed: {exc!r}", file=sys.stderr, flush=True)
+
+
+def _load_plugins() -> list:
+    """Discover the registry once and memo the plugin objects.
+
+    Separated from ``_probe_all_pools`` so the cold path can name the pools
+    without paying for their health probes. Discovery is sub-millisecond and
+    the YAML parse is single-digit milliseconds — cheap enough for a request
+    — but we memo anyway because this runs behind every placeholder render.
+    """
+    global _PLUG_CACHE  # noqa: PLW0603 - module-level memo is intended
+
+    if _PLUG_CACHE is not None:
+        return _PLUG_CACHE
+
+    from core.registry import PluginRegistry  # noqa: PLC0415 - lazy
+
+    reg = PluginRegistry(PROJECT_ROOT).discover()
+    reg.apply_pools_config(PROJECT_ROOT / "config" / "pools.yaml")
+    _PLUG_CACHE = list(reg.all())
+    return _PLUG_CACHE
+
+
 def _probe_all_pools() -> list[dict[str, object]]:
     try:
-        from core.registry import PluginRegistry  # noqa: PLC0415 - lazy
+        plugs = _load_plugins()
     except Exception as exc:  # noqa: BLE001
         return [{"name": "registry", "ok": False, "detail": _redact(f"import failed: {exc!r}"), "models": [], "capabilities": [], "provider_id": ""}]
-
-    try:
-        reg = PluginRegistry(PROJECT_ROOT).discover()
-        try:
-            reg.apply_pools_config(PROJECT_ROOT / "config" / "pools.yaml")
-        except Exception as exc:  # noqa: BLE001
-            reg_rows: list[dict[str, object]] = [{"name": "pools.yaml", "ok": False, "detail": _redact(repr(exc)), "models": [], "capabilities": [], "provider_id": ""}]
-            return reg_rows
-    except Exception as exc:  # noqa: BLE001
-        return [{"name": "registry", "ok": False, "detail": _redact(f"discover failed: {exc!r}"), "models": [], "capabilities": [], "provider_id": ""}]
-
-    plugs = list(reg.all())
     return _probe_plugins(plugs)
 
 
@@ -179,13 +248,21 @@ def bot_health() -> dict[str, object]:
     return {"ok": out == "active", "detail": f"systemd llm-router-bot: {out or 'unknown'}"}
 
 
-def render_html(rows: list[dict[str, object]], bot: dict[str, object]) -> str:
-    ok_n = sum(1 for r in rows if r.get("ok"))
+def render_html(
+    rows: list[dict[str, object]],
+    bot: dict[str, object],
+    cache: dict[str, object] | None = None,
+) -> str:
+    # ``ok is True`` rather than truthiness: a warming row is ``None`` and
+    # must not be counted as either healthy or down.
+    ok_n = sum(1 for r in rows if r.get("ok") is True)
+    warming_n = sum(1 for r in rows if r.get("ok") is None)
     total = len(rows)
     bot_ok = bool(bot.get("ok"))
+    cache = cache or {"age_s": None, "warming": False}
 
     def row_html(r: dict[str, object]) -> str:
-        mark = "🟢" if r.get("ok") else "🔴"
+        mark = "🟢" if r.get("ok") is True else ("🟡" if r.get("ok") is None else "🔴")
         caps = ", ".join(str(c) for c in r.get("capabilities", []))  # type: ignore[arg-type]
         models = ", ".join(str(m) for m in r.get("models", []))  # type: ignore[arg-type]
         return (
@@ -248,6 +325,7 @@ def render_html(rows: list[dict[str, object]], bot: dict[str, object]) -> str:
     {'🟢' if bot_ok else '🔴'} <strong>Telegram dispatch bot</strong> — {html.escape(str(bot.get('detail')))}
     <br>
     {'🟢' if ok_n == total and total else '🟡'} <strong>{ok_n} / {total}</strong> LLM pools healthy
+    {'<br>🟡 <strong>' + str(warming_n) + ' warming up</strong> — first sweep still running, refresh in a moment' if warming_n else ''}
   </p>
 
   <table>
@@ -264,6 +342,7 @@ def render_html(rows: list[dict[str, object]], bot: dict[str, object]) -> str:
       <a href="https://github.com/kiddhsu5/llm-router">github.com/kiddhsu5/llm-router</a>
       · <a href="/healthz">/healthz</a>
       · rendered {time.strftime(GENERATED_AT_FORMAT, time.gmtime())}
+      · cache age {'n/a' if cache.get('age_s') is None else str(cache.get('age_s')) + 's'}{' · refreshing' if cache.get('warming') else ''}
     </p>
   </footer>
 </body>
@@ -290,15 +369,19 @@ class Handler(BaseHTTPRequestHandler):
         rows = pool_health()
         bot = bot_health()
         if path == "/healthz":
+            cache = cache_state()
             payload = {
-                "ok": all(bool(r.get("ok")) for r in rows) and bool(bot.get("ok")),
+                # None rows are "not looked at yet", not "down" — do not
+                # fold them into ok, or a warm-up looks like an outage.
+                "ok": all(r.get("ok") is True for r in rows) and bool(bot.get("ok")),
+                "cache": cache,
                 "bot": bot,
                 "pools": rows,
                 "generated_at": time.strftime(GENERATED_AT_FORMAT, time.gmtime()),
             }
             self._send(200, json.dumps(payload, ensure_ascii=False).encode(), "application/json; charset=utf-8")
             return
-        self._send(200, render_html(rows, bot).encode(), "text/html; charset=utf-8")
+        self._send(200, render_html(rows, bot, cache_state()).encode(), "text/html; charset=utf-8")
 
     def log_message(self, fmt: str, *args: object) -> None:  # noqa: A003
         sys.stderr.write("%s - %s\n" % (self.address_string(), fmt % args))
@@ -393,6 +476,48 @@ def candidate_hosts(preferred: str) -> list[str]:
     return hosts
 
 
+class _TLSServer(ThreadingHTTPServer):
+    """HTTPS server that wraps each *accepted* socket.
+
+    The shorter-looking alternative —
+
+        srv.socket = ctx.wrap_socket(srv.socket, server_side=True)
+
+    — wraps the *listening* socket and is a trap. The assignment drops the
+    only reference to the original socket object, whose ``__del__`` closes
+    the shared file descriptor, so the listener vanishes shortly after the
+    "listening on ..." line is printed and every later connection is
+    refused. What is left behind is a socket that still shows up in
+    ``ss -ltn`` with a growing ``Recv-Q`` until the GC runs. Wrap per
+    connection instead; the handshake then happens in the handler thread
+    and a slow client cannot stall accept.
+    """
+
+    def __init__(self, addr: tuple[str, int], handler, ctx: ssl.SSLContext) -> None:
+        self._ctx = ctx
+        super().__init__(addr, handler)
+
+    def get_request(self):  # noqa: ANN201 - matches socketserver's signature
+        conn, addr = super().get_request()
+        # Cap the handshake so half-open TLS attempts cannot pin threads.
+        conn.settimeout(10)
+        try:
+            conn = self._ctx.wrap_socket(conn, server_side=True)
+        except (ssl.SSLError, OSError) as exc:
+            conn.close()
+            # socketserver treats OSError from get_request as "skip this
+            # connection", which is what we want for scanners sending
+            # plain HTTP to the HTTPS port. A real error would otherwise
+            # spam a traceback per probe.
+            raise OSError(f"TLS handshake failed from {addr[0]}: {exc}") from exc
+        finally:
+            try:
+                conn.settimeout(None)
+            except OSError:  # pragma: no cover - socket already gone
+                pass
+        return conn, addr
+
+
 def start_listener(
     label: str,
     host: str,
@@ -407,12 +532,14 @@ def start_listener(
     errors: list[str] = []
     for addr in candidate_hosts(host):
         try:
-            srv = ThreadingHTTPServer((addr, port), Handler)
+            srv: ThreadingHTTPServer
+            if wrap_ssl is not None:
+                srv = _TLSServer((addr, port), Handler, wrap_ssl)
+            else:
+                srv = ThreadingHTTPServer((addr, port), Handler)
         except OSError as exc:
             errors.append(f"{addr}:{port} -> {exc.strerror or exc}")
             continue
-        if wrap_ssl is not None:
-            srv.socket = wrap_ssl.wrap_socket(srv.socket, server_side=True)
         note = " (self-signed)" if wrap_ssl is not None else ""
         print(f"khavis-status listening on {label}://{addr}:{port}{note}", flush=True)
         return (f"{label}://{addr}", srv, threading.Thread(target=srv.serve_forever, daemon=True))
@@ -449,6 +576,9 @@ def main() -> None:
 
     for _name, _srv, t in started:
         t.start()
+    # Fill the health cache before the first visitor arrives. Without this
+    # the very first request pays for the sweep; see pool_health().
+    warm_cache()
     try:
         while True:
             time.sleep(3600)
