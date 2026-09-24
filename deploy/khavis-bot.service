@@ -22,7 +22,9 @@ NoNewPrivileges=true
 PrivateTmp=true
 ProtectSystem=full
 ProtectHome=read-only
-ReadWritePaths=/root/khavis-bot/memory /root/khavis-bot/logs
+# /root/.claude is required so the `claude` CLI can write session state
+# while ProtectHome=read-only is on; /tmp is for subprocess scratch files.
+ReadWritePaths=/root/khavis-bot/memory /root/khavis-bot/logs /root/.claude /tmp
 
 [Install]
 WantedBy=multi-user.target
