@@ -253,8 +253,43 @@ class TestStartListener:
         assert label == "http://127.0.0.1"
         assert srv.server_address[1] > 0
         try:
-            thread.start()
-            srv.shutdown()  # only valid once serve_forever is running
+            assert thread.is_alive(), "start_listener must serve as soon as it binds"
+            srv.shutdown()
+        finally:
+            srv.server_close()
+
+    def test_serving_starts_at_bind_time(self):
+        # Regression for a 10 s dead window on the deploy host: main() used
+        # to build every listener and only then start the serve threads, so
+        # an already-LISTENing socket queued connections into the kernel
+        # backlog while a later listener was still initialising. "Bound"
+        # must mean "accepting".
+        got = start_listener("http", "127.0.0.1", 0)
+        assert got is not None
+        _label, srv, _thread = got
+        port = srv.server_address[1]
+        try:
+            conn = http.client.HTTPConnection("127.0.0.1", port, timeout=3)
+            try:
+                conn.request("GET", "/healthz")
+                assert conn.getresponse().status == 200
+            finally:
+                conn.close()
+        finally:
+            srv.shutdown()
+            srv.server_close()
+
+    def test_bind_does_not_reverse_dns(self):
+        # http.server.HTTPServer.server_bind ends in socket.getfqdn(host).
+        # On an address with no PTR record that blocks on the resolver
+        # timeout (measured 10.014 s for 172.17.0.106) — and it runs inside
+        # __init__, before serve_forever is anywhere near starting.
+        with patch.object(status_server.socket, "getfqdn", side_effect=AssertionError("reverse DNS on the bind path")):
+            got = start_listener("http", "127.0.0.1", 0)
+        assert got is not None, "bind must not need a reverse lookup"
+        _label, srv, _thread = got
+        try:
+            srv.shutdown()
         finally:
             srv.server_close()
 
@@ -268,9 +303,7 @@ class TestStartListener:
             # one entry, so this must degrade to None, not raise.
             assert start_listener("http", "127.0.0.1", port) is None
         finally:
-            # server_close(), not shutdown() — shutdown() waits on an
-            # event that only serve_forever() sets, so calling it on a
-            # thread we never started deadlocks the test run.
+            srv.shutdown()
             srv.server_close()
 
     def test_one_dead_listener_does_not_affect_the_other(self):
@@ -285,6 +318,7 @@ class TestStartListener:
             # The healthy listener is still intact and usable.
             assert srv.socket.fileno() >= 0
         finally:
+            srv.shutdown()
             srv.server_close()
 
 
@@ -320,15 +354,15 @@ class TestTLSListener:
             # ... and the fd is still actually listening.
             assert srv.socket.getsockname()[1] > 0
         finally:
+            srv.shutdown()
             srv.server_close()
 
     def test_serves_https_end_to_end(self, tmp_path: Path):
         got = start_listener("https", "127.0.0.1", 0, wrap_ssl=self._ctx(tmp_path))
         assert got is not None
-        _label, srv, thread = got
+        _label, srv, _thread = got
         port = srv.server_address[1]
         try:
-            thread.start()
             conn = http.client.HTTPSConnection(
                 "127.0.0.1", port, timeout=5, context=ssl._create_unverified_context()
             )
@@ -352,11 +386,10 @@ class TestTLSListener:
         # in the worker thread instead.
         got = start_listener("https", "127.0.0.1", 0, wrap_ssl=self._ctx(tmp_path))
         assert got is not None
-        _label, srv, thread = got
+        _label, srv, _thread = got
         port = srv.server_address[1]
         stalled = socket.create_connection(("127.0.0.1", port), timeout=5)
         try:
-            thread.start()
             # Opened but never handshakes. Give accept a beat to pick it up.
             time.sleep(0.1)
             started = time.monotonic()
@@ -383,10 +416,9 @@ class TestTLSListener:
         # and the connection is dropped without a traceback per probe.
         got = start_listener("https", "127.0.0.1", 0, wrap_ssl=self._ctx(tmp_path))
         assert got is not None
-        _label, srv, thread = got
+        _label, srv, _thread = got
         port = srv.server_address[1]
         try:
-            thread.start()
             with socket.create_connection(("127.0.0.1", port), timeout=5) as raw:
                 with pytest.raises(Exception):
                     raw.sendall(b"GET / HTTP/1.1\r\nHost: x\r\n\r\n")

@@ -25,6 +25,8 @@ import concurrent.futures
 import html
 import json
 import re
+import socket
+import socketserver
 import ssl
 import subprocess
 import sys
@@ -253,8 +255,6 @@ def _probe_plugins(plugs: list) -> list[dict[str, object]]:
 
 def bot_health() -> dict[str, object]:
     """Is the Telegram dispatch bot process alive on this box?"""
-    import subprocess  # noqa: PLC0415
-
     try:
         out = subprocess.run(
             ["systemctl", "is-active", "llm-router-bot"],
@@ -464,8 +464,6 @@ def primary_ipv4() -> str | None:
     on a host with a ``.local`` name that blocks on mDNS for seconds and
     would stall service startup.
     """
-    import socket  # noqa: PLC0415 - only needed here
-
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     try:
         s.connect(("8.8.8.8", 53))
@@ -496,7 +494,32 @@ def candidate_hosts(preferred: str) -> list[str]:
     return hosts
 
 
-class _TLSServer(ThreadingHTTPServer):
+class _Listener(ThreadingHTTPServer):
+    """``ThreadingHTTPServer`` that binds without a reverse-DNS lookup.
+
+    ``http.server.HTTPServer.server_bind`` ends with ``socket.getfqdn(host)``.
+    On a wildcard bind that resolves quickly, but on a concrete unicast
+    address with no PTR record it blocks on the resolver timeout. Measured on
+    the deploy host: **10.014 s** between "listening on http://0.0.0.0:80" and
+    "listening on https://172.17.0.106:443" — the :443 fallback address after
+    ``tailscaled`` claimed ``*:443``.
+
+    That would only be a slow start if ``main()`` did not build every listener
+    before starting any ``serve_forever``. The :80 socket is already in the
+    ``LISTEN`` state by then, so connections queue in the kernel backlog with
+    nobody accepting them and every visitor times out. Same class of trap as
+    ``primary_ipv4()`` above: no DNS on the startup path. ``server_name`` is
+    only used for CGI and log decoration, so the bare hostname is enough.
+    """
+
+    def server_bind(self) -> None:
+        socketserver.TCPServer.server_bind(self)
+        _host, port = self.server_address[:2]
+        self.server_name = socket.gethostname()
+        self.server_port = port
+
+
+class _TLSServer(_Listener):
     """HTTPS server that performs the TLS handshake in the *worker* thread.
 
     Two traps this avoids, both hit in production:
@@ -546,6 +569,12 @@ def start_listener(
 ) -> tuple[str, ThreadingHTTPServer, threading.Thread] | None:
     """Bind one listener, trying ``candidate_hosts`` in order.
 
+    ``serve_forever`` is started here, not later by ``main()``. A socket is
+    already in the ``LISTEN`` state the moment ``__init__`` returns, so any
+    work that happens between bind and serve — generating a cert, resolving
+    a fallback address — costs every visitor a timeout while connections pile
+    up in the kernel backlog. Binding must mean serving.
+
     Returns None when nothing bound — a dead :443 must not take :80 down
     with it, and vice versa.
     """
@@ -556,13 +585,15 @@ def start_listener(
             if wrap_ssl is not None:
                 srv = _TLSServer((addr, port), Handler, wrap_ssl)
             else:
-                srv = ThreadingHTTPServer((addr, port), Handler)
+                srv = _Listener((addr, port), Handler)
         except OSError as exc:
             errors.append(f"{addr}:{port} -> {exc.strerror or exc}")
             continue
         note = " (self-signed)" if wrap_ssl is not None else ""
         print(f"khavis-status listening on {label}://{addr}:{port}{note}", flush=True)
-        return (f"{label}://{addr}", srv, threading.Thread(target=srv.serve_forever, daemon=True))
+        thread = threading.Thread(target=srv.serve_forever, daemon=True, name=f"khavis-{label}")
+        thread.start()
+        return (f"{label}://{addr}", srv, thread)
     print(f"khavis-status: could not bind {label}:{port} — {'; '.join(errors)}", file=sys.stderr, flush=True)
     return None
 
@@ -594,8 +625,6 @@ def main() -> None:
     if not started:
         raise SystemExit("khavis-status: no listener could be bound; refusing to idle")
 
-    for _name, _srv, t in started:
-        t.start()
     # Fill the health cache before the first visitor arrives. Without this
     # the very first request pays for the sweep; see pool_health().
     warm_cache()
