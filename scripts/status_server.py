@@ -497,45 +497,45 @@ def candidate_hosts(preferred: str) -> list[str]:
 
 
 class _TLSServer(ThreadingHTTPServer):
-    """HTTPS server that wraps each *accepted* socket.
+    """HTTPS server that performs the TLS handshake in the *worker* thread.
 
-    The shorter-looking alternative —
+    Two traps this avoids, both hit in production:
 
-        srv.socket = ctx.wrap_socket(srv.socket, server_side=True)
+    1. Wrapping the listening socket —
 
-    — wraps the *listening* socket and is a trap. The assignment drops the
-    only reference to the original socket object, whose ``__del__`` closes
-    the shared file descriptor, so the listener vanishes shortly after the
-    "listening on ..." line is printed and every later connection is
-    refused. What is left behind is a socket that still shows up in
-    ``ss -ltn`` with a growing ``Recv-Q`` until the GC runs. Wrap per
-    connection instead; the handshake then happens in the handler thread
-    and a slow client cannot stall accept.
+           srv.socket = ctx.wrap_socket(srv.socket, server_side=True)
+
+       — looks shorter but drops the only reference to the original socket
+       object, whose ``__del__`` closes the shared file descriptor.
+
+    2. Wrapping in ``get_request()`` — which is the obvious place — is just
+       as bad in a different way: ``socketserver`` calls ``get_request()``
+       from ``serve_forever``'s own thread, *before* ``process_request()``
+       spawns a worker. A handshake there therefore blocks accept for up to
+       the handshake timeout, the backlog (5) fills, and callers see Cloudflare
+       525 / timeouts while the process looks idle.
+
+    ``process_request_thread`` is the first thing that already runs on a
+    fresh thread, so the handshake belongs there.
     """
 
     def __init__(self, addr: tuple[str, int], handler, ctx: ssl.SSLContext) -> None:
         self._ctx = ctx
         super().__init__(addr, handler)
 
-    def get_request(self):  # noqa: ANN201 - matches socketserver's signature
-        conn, addr = super().get_request()
-        # Cap the handshake so half-open TLS attempts cannot pin threads.
-        conn.settimeout(10)
+    def process_request_thread(self, request, client_address) -> None:  # noqa: ANN001
+        # Cap the handshake so half-open TLS attempts cannot pin a thread.
+        request.settimeout(10)
         try:
-            conn = self._ctx.wrap_socket(conn, server_side=True)
-        except (ssl.SSLError, OSError) as exc:
-            conn.close()
-            # socketserver treats OSError from get_request as "skip this
-            # connection", which is what we want for scanners sending
-            # plain HTTP to the HTTPS port. A real error would otherwise
-            # spam a traceback per probe.
-            raise OSError(f"TLS handshake failed from {addr[0]}: {exc}") from exc
-        finally:
-            try:
-                conn.settimeout(None)
-            except OSError:  # pragma: no cover - socket already gone
-                pass
-        return conn, addr
+            request = self._ctx.wrap_socket(request, server_side=True)
+        except (ssl.SSLError, OSError):
+            # Scanners sending plain HTTP to the HTTPS port land here. Just
+            # drop them — a traceback per probe is noise, and shutdown_request
+            # closes the socket.
+            self.shutdown_request(request)
+            return
+        request.settimeout(None)
+        super().process_request_thread(request, client_address)
 
 
 def start_listener(

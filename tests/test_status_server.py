@@ -289,13 +289,17 @@ class TestStartListener:
 
 
 class TestTLSListener:
-    """The HTTPS listener must survive its own construction.
+    """The HTTPS listener must survive construction *and* stay accepting.
 
-    ``srv.socket = ctx.wrap_socket(srv.socket, ...)`` drops the last
-    reference to the original socket; its ``__del__`` closes the shared fd
-    and the listener silently disappears. Seen in production as a
-    "listening on https://..." log line followed by connection-refused and
-    an ``ss -ltn`` row with a growing ``Recv-Q``.
+    Two properties, both broken once and both invisible from the log:
+
+    - the listening socket must stay open (``ss -ltn`` showed a growing
+      ``Recv-Q`` while the process printed "listening on ..."), and
+    - a client that stalls mid-handshake must not stall the accept loop.
+      ``socketserver`` calls ``get_request()`` on ``serve_forever``'s own
+      thread, so a handshake placed there costs the listener up to the
+      handshake timeout per connection — which showed up in production as
+      Cloudflare 525 with the origin idle.
     """
 
     @staticmethod
@@ -339,10 +343,44 @@ class TestTLSListener:
             srv.shutdown()
             srv.server_close()
 
+    def test_stalled_handshake_does_not_block_accept(self, tmp_path: Path):
+        # Regression: the handshake used to live in get_request(), which
+        # runs on the serve_forever thread. One client that opens a TCP
+        # connection and then sends nothing pinned accept for the full
+        # handshake timeout (10 s), so a real request arriving behind it
+        # waited and Cloudflare gave up with a 525. The handshake must run
+        # in the worker thread instead.
+        got = start_listener("https", "127.0.0.1", 0, wrap_ssl=self._ctx(tmp_path))
+        assert got is not None
+        _label, srv, thread = got
+        port = srv.server_address[1]
+        stalled = socket.create_connection(("127.0.0.1", port), timeout=5)
+        try:
+            thread.start()
+            # Opened but never handshakes. Give accept a beat to pick it up.
+            time.sleep(0.1)
+            started = time.monotonic()
+            conn = http.client.HTTPSConnection(
+                "127.0.0.1", port, timeout=3, context=ssl._create_unverified_context()
+            )
+            try:
+                conn.request("GET", "/healthz")
+                assert conn.getresponse().status == 200
+            finally:
+                conn.close()
+            waited = time.monotonic() - started
+            assert waited < 3.0, (
+                f"accept was blocked for {waited:.2f}s by a stalled handshake"
+            )
+        finally:
+            stalled.close()
+            srv.shutdown()
+            srv.server_close()
+
     def test_plain_http_to_tls_port_does_not_wedge_the_listener(self, tmp_path: Path):
         # A scanner sending plain HTTP at :443 must cost one connection,
-        # not the accept loop. The handshake failure surfaces as OSError
-        # from get_request(), which socketserver treats as "skip it".
+        # not the accept loop. The handshake raises in the worker thread
+        # and the connection is dropped without a traceback per probe.
         got = start_listener("https", "127.0.0.1", 0, wrap_ssl=self._ctx(tmp_path))
         assert got is not None
         _label, srv, thread = got
