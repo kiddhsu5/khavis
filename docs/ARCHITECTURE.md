@@ -1,11 +1,11 @@
 # Architecture
 
-This document is the deep dive. If you only need to *use* llm-router, the [README](../README.md) is enough. If you want to *extend* it, debug it, or just understand why it is shaped the way it is, read on.
+This document is the deep dive. If you only need to *use* K.H.A.V.I.S., the [README](../README.md) is enough. If you want to *extend* it, debug it, or just understand why it is shaped the way it is, read on.
 
 ## Design principles
 
 1. **Pluggable everything.** Every provider is a file. Every capability tag is a string. Every memory backend is an interface. Nothing is hard-coded twice.
-2. **BYOK and self-hosted.** llm-router is your software, running on your hardware, with your keys. There is no llm-router cloud.
+2. **BYOK and self-hosted.** K.H.A.V.I.S. is your software, running on your hardware, with your keys. There is no K.H.A.V.I.S. cloud.
 3. **Capability over identity.** Callers request *what they need* (`code`, `vision`, `cheap`), not *which model*. The router resolves.
 4. **Fail forward.** Errors are signal. Quota pressure, latency spikes, and model downtime all feed back into the routing decision in real time.
 5. **Files > UI.** Configuration is YAML. State is logs. Audit is append-only JSONL. Everything can be diffed in git.
@@ -105,7 +105,7 @@ The router walks the preference list, drops pools that violate a hard constraint
 
 A single `ChatRequest` is not always enough. Some workloads want a planner → coder → critic chain, a debate pattern, or a parallel fan-out with voting.
 
-`llm_router.agents` provides three primitives:
+`khavis.agents` provides three primitives:
 
 - `Pipeline(steps)` — sequential, each step sees the previous step's output.
 - `DAG(nodes, edges)` — arbitrary directed graph of LLM calls.
@@ -121,7 +121,7 @@ The orchestrator also owns:
 
 ## Layer 5 — Memory (working / episodic / semantic)
 
-Long-running agents need more than a single `messages` list. llm-router ships with a three-tier memory model:
+Long-running agents need more than a single `messages` list. K.H.A.V.I.S. ships with a three-tier memory model:
 
 | Tier      | Lifetime                | Purpose                                          | Default backend        |
 |-----------|-------------------------|--------------------------------------------------|------------------------|
@@ -153,7 +153,7 @@ These records are emitted to:
 
 - `audit.jsonl` (rotated daily)
 - stdout (when `--verbose`)
-- any OTLP-compatible collector (Prometheus, Jaeger, Datadog) via the optional `llm_router.otel` plugin
+- any OTLP-compatible collector (Prometheus, Jaeger, Datadog) via the optional `khavis.otel` plugin
 
 The audit layer is the single source of truth for:
 

@@ -1,4 +1,4 @@
-# llm-router Telegram bot — deployment guide
+# K.H.A.V.I.S. Telegram bot — deployment guide
 
 Run the dispatch bot on **Aliyun ECS / Lighthouse** or any Linux VPS.
 
@@ -6,7 +6,7 @@ Run the dispatch bot on **Aliyun ECS / Lighthouse** or any Linux VPS.
 
 ```bash
 # 1. On the Mac — fill .env, build image, push to Aliyun Container Registry
-cd /path/to/llm-router
+cd /path/to/khavis
 cp deploy/.env.example .env       # fill BOT_TOKEN, ALLOWED_CHAT_IDS
 ALIYUN_ECS_HOST=root@<public-ip> bash deploy/scripts/deploy-aliyun.sh
 
@@ -19,7 +19,7 @@ curl "https://api.telegram.org/bot${BOT_TOKEN}/setWebhook?url=https://bot.kiddhs
 # 4. From Telegram: send /start to the bot, expect a welcome reply.
 ```
 
-The deploy script does all the work — `git clone` on first run, `git pull` after, `docker compose up -d`. **It expects you to `scp .env user@host:~/llm-router-bot/.env` separately** (out-of-band secret delivery).
+The deploy script does all the work — `git clone` on first run, `git pull` after, `docker compose up -d`. **It expects you to `scp .env user@host:~/khavis-bot/.env` separately** (out-of-band secret delivery).
 
 ## Files
 
@@ -74,8 +74,8 @@ The historical cert from `~/.Trash/migration-20260721*/system/caddy-data/certifi
 1. **Provision ECS** — 1 vCPU / 1 GB RAM is plenty for a single-user bot. Pick an image with Docker pre-installed (Aliyun's "Container-optimized OS" works).
 2. **Open inbound ports** — 22 (SSH), 80 (ACME HTTP-01), 443 (webhook).
 3. **DNS** — add A record `bot.kiddhsu.taipei → <ECS public IP>`.
-4. **Clone the repo on the ECS** (one-time): `ssh root@<ip> "git clone https://github.com/kiddhsu5/llm-router.git ~/llm-router-bot"`.
-5. **Copy `.env` to the ECS** (out-of-band, never commit it): `scp .env root@<ip>:~/llm-router-bot/.env`.
+4. **Clone the repo on the ECS** (one-time): `ssh root@<ip> "git clone https://github.com/kiddhsu5/khavis.git ~/khavis-bot"`.
+5. **Copy `.env` to the ECS** (out-of-band, never commit it): `scp .env root@<ip>:~/khavis-bot/.env`.
 6. **Run `deploy/scripts/deploy-aliyun.sh`** from your Mac. It pulls the image and rolls the container.
 7. **Wait ~30 s**, then `ssh root@<ip> "curl -fsS https://bot.kiddhsu.taipei/healthz"` — should return `{"status":"ok",...}`.
 8. **Set webhook** (one-time): `curl "https://api.telegram.org/bot${BOT_TOKEN}/setWebhook?url=https://bot.kiddhsu.taipei/webhook"`.
@@ -84,7 +84,7 @@ The historical cert from `~/.Trash/migration-20260721*/system/caddy-data/certifi
 ## Local-only testing (no cloud VPS)
 
 ```bash
-cd /path/to/llm-router
+cd /path/to/khavis
 BOT_MODE=polling BOT_TOKEN=... ALLOWED_CHAT_IDS=... python -m bot.main --mode polling
 ```
 
@@ -108,7 +108,7 @@ The `deploy/scripts/deploy-aliyun.sh` script wraps this for you and pushes the n
 | `curl /healthz` 502 | Caddy can't reach bot — check `docker network inspect` |
 | Telegram 400 "message to be replied not found" | bot using stale code; restart with new image |
 | ACME challenge fails (no cert) | inbound 80 blocked — open it |
-| Bot silent / log shows `kiddhsu5/llm-router.py not found` | wrong project_root, fix `args.project_root` in `entrypoint.sh` |
+| Bot silent / log shows `kiddhsu5/khavis.py not found` | wrong project_root, fix `args.project_root` in `entrypoint.sh` |
 
 ## Cleanup / uninstall
 
@@ -117,8 +117,8 @@ The `deploy/scripts/deploy-aliyun.sh` script wraps this for you and pushes the n
 docker compose -f deploy/docker-compose.yml down
 
 # Wipe bot data (volumes)
-docker volume rm llm-router-bot_caddy_data llm-router-bot_caddy_config
+docker volume rm khavis-bot_caddy_data khavis-bot_caddy_config
 
 # Remove the cloned repo on the ECS
-ssh root@<ip> "rm -rf ~/llm-router-bot"
+ssh root@<ip> "rm -rf ~/khavis-bot"
 ```

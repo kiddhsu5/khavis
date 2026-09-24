@@ -1,10 +1,10 @@
-# llm-router v0.1.0 Release Checklist
+# K.H.A.V.I.S. v0.1.0 Release Checklist
 
-> **Operational playbook** for taking llm-router from "ready in local repo" to "publicly available on GitHub + PyPI + Docker Hub + Hacker News".
+> **Operational playbook** for taking K.H.A.V.I.S. from "ready in local repo" to "publicly available on GitHub + PyPI + Docker Hub + Hacker News".
 > Use this as a literal checklist — every item is something a solo maintainer has personally forgotten at least once.
 > Format: T-X days, counting down to launch (T-0).
 
-**Project:** llm-router (Apache-2.0, plugin-based router for 12 LLM providers)
+**Project:** K.H.A.V.I.S. (Apache-2.0, plugin-based router for 12 LLM providers)
 **Author:** Kidd Hsu (solo developer, placeholder)
 **Target launch:** late September 2026 (Tuesday or Wednesday recommended for HN timing)
 **Channels:** GitHub, PyPI, Docker Hub, GitHub Container Registry, Hacker News, Twitter/X, dev.to, Zhihu / 知乎, V2EX, r/LocalLLaMA, r/Python, r/MachineLearning, Lobsters, 掘金
@@ -46,7 +46,7 @@
 ### Accounts setup
 
 - [ ] **GitHub** — account created, 2FA enabled (TOTP preferred over SMS)
-- [ ] **GitHub org/repo** — `github.com/kiddhsu5/llm-router` created (public)
+- [ ] **GitHub org/repo** — `github.com/kiddhsu5/khavis` created (public)
 - [ ] **PyPI** — account created at pypi.org, 2FA mandatory since 2024
 - [ ] **TestPyPI** — account created at test.pypi.org for dry-runs
 - [ ] **Docker Hub** — `kiddhsu` namespace reserved
@@ -59,7 +59,7 @@
 
 ### Domain / branding (optional)
 
-- [ ] `khavis.kiddhsu.taipei` registered (or `llm-router.io`) — skip if cost-prohibitive; PyPI + GitHub are sufficient
+- [ ] `khavis.kiddhsu.taipei` registered (or `khavis.io`) — skip if cost-prohibitive; PyPI + GitHub are sufficient
 - [ ] Logo / wordmark designed (Figma, or use a public-domain glyph like `→`)
 - [ ] Brand colors picked (we use a single accent — `#0EA5E9` sky-500 — in README)
 
@@ -100,11 +100,11 @@
 
 ### Docker test
 
-- [ ] `docker build -t llm-router:test .` succeeds on **arm64** (Apple Silicon)
-- [ ] `docker build -t llm-router:test-amd .` succeeds on **amd64** (cloud runner or `docker buildx build --platform linux/amd64`)
-- [ ] `docker run --rm llm-router:test python3 scripts/test_plugins.py` — 12 plugins verified inside container
-- [ ] `docker run --rm -p 8080:8080 llm-router:test` — health endpoint responds on `http://localhost:8080/health`
-- [ ] Image size < 300 MB (`docker images llm-router:test` — verify slim base)
+- [ ] `docker build -t khavis:test .` succeeds on **arm64** (Apple Silicon)
+- [ ] `docker build -t khavis:test-amd .` succeeds on **amd64** (cloud runner or `docker buildx build --platform linux/amd64`)
+- [ ] `docker run --rm khavis:test python3 scripts/test_plugins.py` — 12 plugins verified inside container
+- [ ] `docker run --rm -p 8080:8080 khavis:test` — health endpoint responds on `http://localhost:8080/health`
+- [ ] Image size < 300 MB (`docker images khavis:test` — verify slim base)
 
 ### PyPI dry-run
 
@@ -112,8 +112,8 @@
 - [ ] `python3 -m build --sdist --wheel` — both `dist/*.whl` and `dist/*.tar.gz` produced
 - [ ] `twine check dist/*` — `PASSED` for both files
 - [ ] Upload to TestPyPI: `twine upload --repository testpypi dist/*`
-- [ ] Verify install: `pip install --index-url https://test.pypi.org/simple/ llm-router`
-- [ ] Run `llm-router --version` from the TestPyPI install — expect `0.1.0`
+- [ ] Verify install: `pip install --index-url https://test.pypi.org/simple/ K.H.A.V.I.S.`
+- [ ] Run `khavis --version` from the TestPyPI install — expect `0.1.0`
 
 ### Secrets configuration
 
@@ -156,7 +156,7 @@
 
 - [ ] `git log --oneline -10` — history clean, no "wip" commits
 - [ ] `git tag --list` — `v0.1.0` present, signed
-- [ ] GitHub Actions green: `https://github.com/kiddhsu5/llm-router/actions`
+- [ ] GitHub Actions green: `https://github.com/kiddhsu5/khavis/actions`
 - [ ] TestPyPI install command tested one more time
 - [ ] Docker image built and tested one more time
 - [ ] Phone silenced, calendar blocked 9 AM–noon tomorrow for launch
@@ -177,15 +177,15 @@
   - [ ] `release.yml` job: `publish-pypi` → green (check PyPI page in 5 min)
   - [ ] `release.yml` job: `github-release` → green
   - [ ] `docker.yml` job: multi-arch build → green (arm64 + amd64)
-- [ ] Verify **PyPI package visible** at https://pypi.org/project/llm-router/
+- [ ] Verify **PyPI package visible** at https://pypi.org/project/khavis/
   - [ ] Version `0.1.0` listed
   - [ ] Description rendered
-  - [ ] `pip install llm-router` works in a fresh venv
-- [ ] Verify **Docker image pushed to GHCR** at https://github.com/kiddhsu5/llm-router/pkgs/container/llm-router
+  - [ ] `pip install khavis` works in a fresh venv
+- [ ] Verify **Docker image pushed to GHCR** at https://github.com/kiddhsu5/khavis/pkgs/container/khavis
   - [ ] Tags: `latest`, `0.1.0`, `v0.1.0`, `sha-<short>`
-- [ ] Verify **Docker image pushed to Docker Hub** at https://hub.docker.com/r/kiddhsu/llm-router
+- [ ] Verify **Docker image pushed to Docker Hub** at https://hub.docker.com/r/kiddhsu/khavis
   - [ ] Tags: `latest`, `0.1.0`
-- [ ] Verify **GitHub Release published** at https://github.com/kiddhsu5/llm-router/releases/tag/v0.1.0
+- [ ] Verify **GitHub Release published** at https://github.com/kiddhsu5/khavis/releases/tag/v0.1.0
   - [ ] Release notes auto-generated from CHANGELOG
   - [ ] Wheel + sdist attached as binaries
 
@@ -196,13 +196,13 @@
   - [ ] `blog/show-hn-post.md` (98 lines, ready)
   - [ ] `blog/dev-to-post.md` (459 lines, ready)
   - [ ] `blog/zhihu-post.md` (804 lines, ready)
-- [ ] Pin a tweet: "llm-router v0.1.0 is out → https://github.com/kiddhsu5/llm-router"
+- [ ] Pin a tweet: "K.H.A.V.I.S. v0.1.0 is out → https://github.com/kiddhsu5/khavis"
 
 ### Afternoon (US time = your evening)
 
 - [ ] **Submit Show HN** at 9:00 AM ET sharp (set an alarm)
-  - [ ] Title: `Show HN: llm-router – One endpoint for 12 LLM providers (BYOK)`
-  - [ ] URL: `https://github.com/kiddhsu5/llm-router`
+  - [ ] Title: `Show HN: K.H.A.V.I.S. – One endpoint for 12 LLM providers (BYOK)`
+  - [ ] URL: `https://github.com/kiddhsu5/khavis`
   - [ ] First comment: pre-written technical depth (use `blog/show-hn-post.md` first comment block as base)
   - [ ] Tag: `python`, `open-source`, `llm`, `ai-infrastructure`
 - [ ] **Post Twitter thread** at the same instant (within 5 min of HN submission)
@@ -215,12 +215,12 @@
 ### Evening
 
 - [ ] **Submit to subreddits** (stagger by 2 hours each to avoid spam-detection):
-  - [ ] r/LocalLLaMA — title: `Show: llm-router — one endpoint for 12 LLM providers (BYOK)`, link-only post
-  - [ ] r/MachineLearning — title: `[P] llm-router — open-source router for 12 LLM providers with capability-based dispatch`
-  - [ ] r/Python — title: `Show & Tell: llm-router v0.1.0 — plugin-based LLM gateway (Apache 2.0)`
+  - [ ] r/LocalLLaMA — title: `Show: K.H.A.V.I.S. — one endpoint for 12 LLM providers (BYOK)`, link-only post
+  - [ ] r/MachineLearning — title: `[P] K.H.A.V.I.S. — open-source router for 12 LLM providers with capability-based dispatch`
+  - [ ] r/Python — title: `Show & Tell: K.H.A.V.I.S. v0.1.0 — plugin-based LLM gateway (Apache 2.0)`
   - [ ] Lobsters — submit to `python` tag (requires invite)
 - [ ] **Submit to Chinese-language communities**:
-  - [ ] V2EX — `创造` node, title: `开源 llm-router v0.1.0: 一個 endpoint 串接 12 個 LLM 服務`
+  - [ ] V2EX — `创造` node, title: `开源 K.H.A.V.I.S. v0.1.0: 一個 endpoint 串接 12 個 LLM 服務`
   - [ ] 掘金 (`juejin.cn`) — `后端` tag, cross-post from `blog/zhihu-post.md`
   - [ ] 知乎 (`zhihu.com`) — answer in `LLM 工具` topic, link to GitHub
 - [ ] **Hacker News monitoring**: stay online until HN falls off front page (~24h)
@@ -243,8 +243,8 @@
   - [ ] Apply labels: `bug` / `enhancement` / `question` / `docs` / `good first issue`
   - [ ] Assign milestone if known (`v0.1.1` for quick fixes, `v0.2.0` for features)
   - [ ] Reply with acknowledgment within 24h even if fix is not ready
-- [ ] Monitor **PyPI download stats** at https://pypistats.org/packages/llm-router
-- [ ] Monitor **Docker pull stats** at https://hub.docker.com/r/kiddhsu/llm-router
+- [ ] Monitor **PyPI download stats** at https://pypistats.org/packages/khavis
+- [ ] Monitor **Docker pull stats** at https://hub.docker.com/r/kiddhsu/khavis
 - [ ] Review any **security disclosures** via private email — if any, follow `SECURITY.md`
 
 ### Day 2-3 (T+2 to T+3)
@@ -262,7 +262,7 @@
 
 ### Day 7 (T+7)
 
-- [ ] **Public retrospective post** on dev.to: "What I learned launching llm-router v0.1.0"
+- [ ] **Public retrospective post** on dev.to: "What I learned launching K.H.A.V.I.S. v0.1.0"
 - [ ] Update `CHANGELOG.md` with what was learned
 - [ ] **Plan v0.2.0 features** based on top community requests
 - [ ] Open **5 labelled issues** for v0.2.0 candidates (RFCs)
@@ -316,7 +316,7 @@
   - [ ] Self-sustaining contributor pipeline (3+ recurring contributors)
   - [ ] Clear product-market fit signal (users report cost savings, quota wins)
 - [ ] **Business:**
-  - [ ] Decide on **Pro tier SaaS launch** (managed llm-router hosted)
+  - [ ] Decide on **Pro tier SaaS launch** (managed K.H.A.V.I.S. hosted)
   - [ ] First paying customer (if SaaS path taken)
   - [ ] Or: apply for OSS grants (GitHub Sponsors, OpenAI credits, etc.)
 
@@ -333,8 +333,8 @@
 | **Security issue reported** | Low | Critical | Private disclosure via SECURITY.md; private email + GitHub Security Advisories |
 | **Maintainer burnout** | Medium | High | Set clear "response within 48h" expectation; no on-call; block weekends |
 | **Brand-name DMCA complaint** | Low | Medium | NOTICE file attributes all trademarks; polite takedown process |
-| **PyPI name squatted** | Very Low | Critical | Verify `pip install llm-router` works 7 days before launch (TestPyPI dry-run) |
-| **GitHub org name squatted** | Very Low | Critical | Reserve `kiddhsu/llm-router` 14 days before launch |
+| **PyPI name squatted** | Very Low | Critical | Verify `pip install khavis` works 7 days before launch (TestPyPI dry-run) |
+| **GitHub org name squatted** | Very Low | Critical | Reserve `kiddhsu/khavis` 14 days before launch |
 
 ---
 
@@ -366,7 +366,7 @@
 Thanks for checking this out. A few notes for anyone evaluating it:
 
 1. **Why BYOK**: Most "AI gateways" proxy your keys and bill you markup.
-   llm-router uses your keys directly — no middleman, no markup, no
+   khavis uses your keys directly — no middleman, no markup, no
    quota-sharing with strangers.
 
 2. **Why capability routing**: Instead of "always use GPT-4", you declare
@@ -387,7 +387,7 @@ AMA in the comments. — Kidd
 ```
 Thanks for the report! Reproducing now. Could you paste:
 
-1. Output of `llm-router --version`
+1. Output of `khavis --version`
 2. The exact command that failed
 3. The full traceback (if any)
 4. Your `pools.yaml` (redact keys)
@@ -399,7 +399,7 @@ Will triage within 24h.
 
 ```
 v0.1.1 just shipped — fixes [issue #N] where [one-sentence symptom].
-Upgrade with `pip install --upgrade llm-router` or pull `:0.1.1` from
+Upgrade with `pip install --upgrade khavis` or pull `:0.1.1` from
 Docker Hub. No breaking changes. Thanks to @<reporter> for the report.
 ```
 
@@ -426,7 +426,7 @@ Docker Hub. No breaking changes. Thanks to @<reporter> for the report.
 
 ```
 □ 09:00  Verify GitHub Actions green on tag v0.1.0
-□ 09:05  Verify PyPI shows llm-router 0.1.0
+□ 09:05  Verify PyPI shows khavis 0.1.0
 □ 09:10  Verify GHCR + Docker Hub images pushed
 □ 09:15  Verify GitHub Release page published
 □ 09:30  Pin tweet drafted
@@ -446,4 +446,4 @@ Docker Hub. No breaking changes. Thanks to @<reporter> for the report.
 
 ---
 
-**End of checklist.** When every box above is ticked, llm-router v0.1.0 is live.
+**End of checklist.** When every box above is ticked, K.H.A.V.I.S. v0.1.0 is live.

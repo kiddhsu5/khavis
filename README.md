@@ -1,4 +1,4 @@
-# llm-router
+# K.H.A.V.I.S.
 
 > **Unified interface for 12 LLM providers with smart routing and zero quota interruption.**
 
@@ -9,14 +9,25 @@
 
 ```
     ┌──────────────────────────────────────────────────────────────┐
-    │                       llm-router                             │
+    │                     K.H.A.V.I.S.                         │
     │       One API. Twelve pools. Zero quota interruption.        │
     └──────────────────────────────────────────────────────────────┘
 ```
 
+### Router overhead (p95, real registry, mocked I/O)
+
+| Path | Budget | Measured | Notes |
+| --- | --- | --- | --- |
+| Cold start (`discovery_ms`) | 200 ms | **0.4 ms** | importlib + class init for 12 plugins |
+| YAML reload (`capability_load_ms`) | 50 ms | **9.2 ms** | hot reload goes through this path |
+| Per-request routing (`selection_ms`) | 2 ms | **0.02 ms** | same order as Bifrost's published 20 μs |
+| End-to-end (`chat_roundtrip_ms`) | 10 ms | **0.2 ms** | router overhead only; upstream LLM I/O dominates |
+
+Full numbers and methodology: [`docs/BENCHMARKS.md`](docs/BENCHMARKS.md). CI gates on the budgets above.
+
 ---
 
-## Why llm-router?
+## Why K.H.A.V.I.S.?
 
 If you have ever paid for multiple LLM subscriptions, you already know the pain:
 
@@ -26,7 +37,7 @@ If you have ever paid for multiple LLM subscriptions, you already know the pain:
 - **You cannot benchmark fairly.** Each provider has its own temperature defaults, token counters, and pricing units. Apples-to-apples comparisons require glue code.
 - **You want a fallback, not a failover.** OpenRouter gives you routing, but it does not know about *your* MiniMax-M3 keys, *your* Volcano Ark credits, or *your* local Ollama box.
 
-**llm-router is built for people who already pay for LLMs and just want them to work together.** It treats your subscriptions, free tiers, and local models as one big, capability-tagged pool. When a request arrives, the router picks the best available model, monitors quota pressure, and silently fails over before you ever see a 429.
+**K.H.A.V.I.S. is built for people who already pay for LLMs and just want them to work together.** It treats your subscriptions, free tiers, and local models as one big, capability-tagged pool. When a request arrives, the router picks the best available model, monitors quota pressure, and silently fails over before you ever see a 429.
 
 It is not a hosted gateway. It is not a SaaS. It is a self-hosted, pluggable Python router that runs on your laptop, your homelab, or your CI box, and respects the API keys you already own.
 
@@ -55,7 +66,7 @@ It is not a hosted gateway. It is not a SaaS. It is a self-hosted, pluggable Pyt
 
 ```
                          ┌────────────────────────┐
-   Your app / agent ───► │   llm-router (core)    │
+   Your app / agent ───► │   K.H.A.V.I.S.     │
                          └──────────┬─────────────┘
                                     │
             ┌───────────────────────┼────────────────────────┐
@@ -105,13 +116,13 @@ Three commands and you are routing.
 
 ```bash
 # 1. Install
-pip install llm-router
+pip install khavis
 
 # 2. Initialize a config in the current directory
-llm-router init
+khavis init
 
 # 3. Run the daemon (HTTP API on :8080 by default)
-llm-router serve
+khavis serve
 ```
 
 That's it. Edit `pools.yaml` to add your API keys, then send a request:
@@ -134,24 +145,24 @@ The router will pick the cheapest available code-capable pool, fall back to the 
 python -m venv .venv
 source .venv/bin/activate        # Windows: .venv\Scripts\activate
 pip install --upgrade pip
-pip install llm-router
+pip install khavis
 ```
 
 Verify:
 
 ```bash
-llm-router --version
-llm-router doctor               # checks Python, network, Ollama (if local)
+khavis --version
+khavis doctor               # checks Python, network, Ollama (if local)
 ```
 
 ### Option B — Docker (zero-install, fully isolated)
 
 ```bash
 docker run -d \
-  --name llm-router \
+  --name khavis \
   -p 8080:8080 \
   -v $(pwd)/config:/app/config \
-  ghcr.io/llm-router/llm-router:0.1.0
+  ghcr.io/kiddhsu5/khavis:0.1.0
 ```
 
 The image ships with all provider plugins pre-installed. Mount your `config/` directory to persist keys and routing rules.
@@ -159,8 +170,8 @@ The image ships with all provider plugins pre-installed. Mount your `config/` di
 ### Option C — from source (contributors)
 
 ```bash
-git clone https://github.com/llm-router/llm-router.git
-cd llm-router
+git clone https://github.com/kiddhsu5/khavis.git
+cd khavis
 python -m venv .venv && source .venv/bin/activate
 pip install -e ".[dev]"
 pytest -q
@@ -175,7 +186,7 @@ For full step-by-step setup including Ollama, Docker, and platform-specific note
 ### 1. Capability-based chat
 
 ```python
-from llm_router import Router
+from khavis import Router
 
 router = Router.from_yaml("config/capabilities.yaml")
 
@@ -221,7 +232,7 @@ response = router.chat(
 ### 5. Multi-agent orchestration
 
 ```python
-from llm_router.agents import Pipeline
+from khavis.agents import Pipeline
 
 pipeline = Pipeline([
     ("planner",  {"capability": "reasoning"}),
@@ -293,13 +304,13 @@ These plugins are **enabled in code by default** but the integration test will s
 | `Claude-API`        | Anthropic API key                                 | https://console.anthropic.com                          |
 | `NVIDIA-Cloud`      | NVIDIA NIM API key                                | https://build.nvidia.com (paid GPU credits)            |
 
-> **Important:** An OpenAI Platform API key is **different** from a ChatGPT Plus / ChatGPT GO subscription. The same goes for Claude API versus Claude Code or Cursor — those tools use their own billing, not the platform API. BYOK means *you* decide which bills you pay; llm-router does not add a markup.
+> **Important:** An OpenAI Platform API key is **different** from a ChatGPT Plus / ChatGPT GO subscription. The same goes for Claude API versus Claude Code or Cursor — those tools use their own billing, not the platform API. BYOK means *you* decide which bills you pay; K.H.A.V.I.S. does not add a markup.
 
 ---
 
 ## Configuration
 
-llm-router is configured by two YAML files (and optional environment variables):
+K.H.A.V.I.S. is configured by two YAML files (and optional environment variables):
 
 | File                              | Purpose                                              |
 |-----------------------------------|------------------------------------------------------|
@@ -340,7 +351,7 @@ Adding a new provider is a single file. The registry auto-discovers anything tha
 
 ```python
 # providers/my_provider.py
-from llm_router.plugins import ProviderPlugin, ChatResponse
+from khavis.plugins import ProviderPlugin, ChatResponse
 
 class MyProvider(ProviderPlugin):
     name = "my-provider"
@@ -364,7 +375,7 @@ Register it in `pools.yaml`, add capability tags, submit a PR. Full walkthrough 
 - [ ] **v0.6.0** — Web UI for live pool health and quota dashboards.
 - [ ] **v1.0.0** — Stable plugin API, SemVer guarantees, LTS branch.
 
-Have an idea? Open an issue or vote on the [discussion board](https://github.com/llm-router/llm-router/discussions).
+Have an idea? Open an issue or vote on the [discussion board](https://github.com/kiddhsu5/khavis/discussions).
 
 ---
 
@@ -395,7 +406,7 @@ Highlights:
 Apache License 2.0. See [`LICENSE`](LICENSE) for the full text.
 
 ```
-Copyright 2026 llm-router contributors
+Copyright 2026 khavis contributors
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -408,7 +419,7 @@ You may obtain a copy of the License at
 
 ## Acknowledgements
 
-llm-router stands on the shoulders of:
+K.H.A.V.I.S. stands on the shoulders of:
 
 - The [LiteLLM](https://github.com/BerriAI/litellm) team for normalizing provider APIs.
 - The [OpenRouter](https://openrouter.ai) team for proving the routing concept.

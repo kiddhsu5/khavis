@@ -1,6 +1,6 @@
-# llm-router 操作手冊
+# K.H.A.V.I.S. 操作手冊
 
-本手冊涵蓋 llm-router Telegram dispatch bot 的**日常操作、部署、維運、疑難排解**。適合給操作者 (operator)、維運者 (SRE)、以及接手維護的開發者閱讀。
+本手冊涵蓋 K.H.A.V.I.S. Telegram dispatch bot 的**日常操作、部署、維運、疑難排解**。適合給操作者 (operator)、維運者 (SRE)、以及接手維護的開發者閱讀。
 
 - **快速上手**：第 1 章
 - **Telegram 指令**：第 2 章
@@ -35,7 +35,7 @@
 
 ```bash
 # 本地開發 (Mac 上)
-cd /Users/kiddhsu/data/llm-router
+cd /Users/kiddhsu/data/khavis
 cp deploy/.env.example .env        # 填 BOT_TOKEN / ALLOWED_CHAT_IDS / API keys
 python3 -m bot.main --mode polling # 長輪詢啟動 (最簡單,不需要公網)
 
@@ -58,17 +58,17 @@ bash deploy/scripts/deploy-aliyun.sh
 | `/start` | 歡迎訊息 + 顯示 chat_id | `/start` |
 | `/help` | 顯示指令列表 | `/help` |
 | `/status` | 每個 backend 健康狀態 | `/status` |
-| `/pools` | 列出 llm-router 12 個池 + capabilities | `/pools` |
+| `/pools` | 列出 K.H.A.V.I.S. 12 個池 + capabilities | `/pools` |
 
 ### 2.2 派工指令 `/run`
 
 ```
-/run <prompt>                          # 派給 claude + codex + llm-router 三個 backend
+/run <prompt>                          # 派給 claude + codex + khavis 三個 backend
 /run --only <A,B> <prompt>             # 只派給指定 subset
-/run --capability <cap> <prompt>       # 傳 capability 給 llm-router 池路由
+/run --capability <cap> <prompt>       # 傳 capability 給 khavis 池路由
 ```
 
-**`--only` 可選值**:`claude` / `codex` / `llm-router`(可逗號分隔)
+**`--only` 可選值**:`claude` / `codex` / `khavis`(可逗號分隔)
 
 **`--capability` 可選值** (對應 `config/capabilities.yaml`):
 `中文` / `英文` / `程式碼` / `推理` / `工具調用` / `Embedding` / `長文` / `速度優先` / `辯論` / `審查` / `驗證`
@@ -82,11 +82,11 @@ bash deploy/scripts/deploy-aliyun.sh
 # 只派給 codex
 /run --only codex 簡述 Transformer 架構
 
-# llm-router 用中文能力池
+# khavis 用中文能力池
 /run --capability 中文 寫一段介紹
 
 # 結合
-/run --only llm-router --capability 程式碼 寫一個實作 quicksort
+/run --only khavis --capability 程式碼 寫一個實作 quicksort
 ```
 
 ### 2.4 回應格式
@@ -101,7 +101,7 @@ def average(nums):
 ✅ codex (gpt-5-mini, 1.8s · in=240 out=65)
 ... (其他 backend 的答案)
 
-✅ llm-router (Ollama-Mac / gemma4:e2b, 8.4s)
+✅ khavis (Ollama-Mac / gemma4:e2b, 8.4s)
 ... (答案)
 
 🏁 consensus (from judge):
@@ -129,7 +129,7 @@ bot/main.py (FastAPI + uvicorn)
 handlers.py → dispatch.py → backends/
                               ├── claude.py        → `claude -p` (subprocess)
                               ├── codex.py         → `codex exec` (subprocess)
-                              ├── llm_router.py    → agents.run_team (in-process)
+                              ├── khavis.py    → agents.run_team (in-process)
                               └── judge.py         → Ollama qwen2.5:1.5b (本地 HTTP)
    ↓
 aggregator.py → format_report() → Telegram sendMessage
@@ -157,7 +157,7 @@ aggregator.py → format_report() → Telegram sendMessage
 ### 4.2 安裝
 
 ```bash
-cd /Users/kiddhsu/data/llm-router
+cd /Users/kiddhsu/data/khavis
 
 # 安裝依賴
 /opt/homebrew/bin/python3.12 -m pip install --break-system-packages \
@@ -240,12 +240,12 @@ cat /tmp/bot.pid
 
 ```bash
 # === 步驟 1: 準備 .env (本機) ===
-cd /Users/kiddhsu/data/llm-router
+cd /Users/kiddhsu/data/khavis
 cp deploy/.env.example .env
 # 填入 BOT_TOKEN / ALLOWED_CHAT_IDS / 12 個 LLM API keys
 
 # === 步驟 2: 上傳 .env 到 ECS (出頻外, 不進 git) ===
-scp .env root@<ECS_IP>:~/llm-router-bot/.env
+scp .env root@<ECS_IP>:~/khavis-bot/.env
 
 # === 步驟 3: 執行一鍵部署 ===
 ALIYUN_ECS_HOST=root@<ECS_IP> bash deploy/scripts/deploy-aliyun.sh
@@ -354,8 +354,8 @@ tail -f /tmp/bot.log
 tail -f /tmp/bot.log
 
 # 雲端
-ssh root@<ECS_IP> "cd ~/llm-router-bot && docker compose logs -f bot"
-ssh root@<ECS_IP> "cd ~/llm-router-bot && docker compose logs -f caddy"
+ssh root@<ECS_IP> "cd ~/khavis-bot && docker compose logs -f bot"
+ssh root@<ECS_IP> "cd ~/khavis-bot && docker compose logs -f caddy"
 ```
 
 ### 7.2 健康檢查
@@ -375,7 +375,7 @@ curl -fsS https://bot.kiddhsu.taipei/healthz | jq
   "backends": {
     "claude": {"ok": "yes", "detail": "claude 2.1.273"},
     "codex": {"ok": "yes", "detail": "codex 0.155.0"},
-    "llm-router": {"ok": "yes", "detail": "12 pools registered"}
+    "khavis": {"ok": "yes", "detail": "12 pools registered"}
   }
 }
 ```
@@ -392,7 +392,7 @@ curl -fsS https://bot.kiddhsu.taipei/healthz | jq
 /opt/homebrew/bin/python3.12 scripts/launch_bot_daemon.py
 
 # 雲端
-ssh root@<ECS_IP> "cd ~/llm-router-bot && docker compose restart bot"
+ssh root@<ECS_IP> "cd ~/khavis-bot && docker compose restart bot"
 ```
 
 ### 8.2 更新程式碼
@@ -439,8 +439,8 @@ bash deploy/scripts/deploy-aliyun.sh
 
 ```bash
 # 備份 .env (機密!)
-cp .env ~/backup/llm-router-$(date +%Y%m%d).env.enc
-gpg -c ~/backup/llm-router-$(date +%Y%m%d).env.enc
+cp .env ~/backup/khavis-$(date +%Y%m%d).env.enc
+gpg -c ~/backup/khavis-$(date +%Y%m%d).env.enc
 
 # 備份對話 history (SQLite, agents/memory.py 寫入)
 cp memory/episodic.sqlite ~/backup/
@@ -514,7 +514,7 @@ ALIYUN_ECS_HOST=root@<IP> bash deploy/scripts/deploy-aliyun.sh     # 一鍵部�
 ## 附錄 B: 檔案結構
 
 ```
-/Users/kiddhsu/data/llm-router/
+/Users/kiddhsu/data/khavis/
 ├── bot/                          # Telegram dispatch bot
 │   ├── __init__.py
 │   ├── __main__.py
@@ -532,7 +532,7 @@ ALIYUN_ECS_HOST=root@<IP> bash deploy/scripts/deploy-aliyun.sh     # 一鍵部�
 │       ├── base.py               # Backend ABC
 │       ├── claude.py             # `claude -p` subprocess
 │       ├── codex.py              # `codex exec` subprocess
-│       ├── llm_router.py         # agents.run_team (in-process)
+│       ├── khavis.py         # agents.run_team (in-process)
 │       └── judge.py              # Ollama qwen2.5:1.5b 當 judge
 ├── core/                         # registry + capability_router
 ├── providers/                    # 12 個 LLM provider plugins

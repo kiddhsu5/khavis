@@ -1,6 +1,6 @@
 # How to Stop Fighting Your LLM Subscriptions
 
-> A hands-on tutorial for setting up llm-router on your laptop in 10 minutes.
+> A hands-on tutorial for setting up K.H.A.V.I.S. on your laptop in 10 minutes.
 
 ![cover-image-placeholder — three browser tabs, each showing a different LLM dashboard with a red 429 indicator. Replace with a real screenshot when publishing.]
 
@@ -19,11 +19,11 @@ And you're tired of:
 - Paying 5% markup to a routing gateway that doesn't even know about your ChatGPT Plus.
 - Not knowing which model you actually spent the most money on.
 
-This tutorial walks you through installing **llm-router** — an open-source, Apache 2.0 router that treats your subscriptions as one capability-tagged pool — and using it from your Python code.
+This tutorial walks you through installing **K.H.A.V.I.S.** — an open-source, Apache 2.0 router that treats your subscriptions as one capability-tagged pool — and using it from your Python code.
 
 By the end, you'll have:
 
-- llm-router running locally on `:8080`
+- K.H.A.V.I.S. running locally on `:8080`
 - 10 providers registered (12 in the latest release, including OpenAI + Claude BYOK)
 - Your code saying *what it wants* (e.g. `capability="中文"`) instead of *which provider* to use
 - A JSONL audit log of every request
@@ -49,20 +49,20 @@ Optional but nice:
 ## Step 1 — Install
 
 ```bash
-pip install llm-router
+pip install khavis
 ```
 
 Verify:
 
 ```bash
-llm-router --version
-# llm-router 0.1.0
+khavis --version
+# khavis 0.1.0
 ```
 
 If you prefer Docker:
 
 ```bash
-docker pull kiddhsu/llm-router:0.1.0
+docker pull kiddhsu/khavis:0.1.0
 ```
 
 (We'll come back to Docker in Step 6.)
@@ -72,9 +72,9 @@ docker pull kiddhsu/llm-router:0.1.0
 ## Step 2 — Scaffold a config
 
 ```bash
-mkdir llm-router-demo
-cd llm-router-demo
-llm-router init
+mkdir khavis-demo
+cd khavis-demo
+khavis init
 ```
 
 You should see:
@@ -120,7 +120,7 @@ OPENROUTER_API_KEY=
 
 Fill in any keys you have. Leave the rest blank — the router will mark those pools as `unhealthy` until you add a key, but they won't break anything.
 
-> **Important:** add `.env` to your `.gitignore`. The CLI does this automatically when you run `llm-router init`, but double-check.
+> **Important:** add `.env` to your `.gitignore`. The CLI does this automatically when you run `khavis init`, but double-check.
 
 ```bash
 echo ".env" >> .gitignore
@@ -131,13 +131,13 @@ echo ".env" >> .gitignore
 ## Step 4 — Start the daemon
 
 ```bash
-llm-router serve
+khavis serve
 ```
 
 You should see:
 
 ```
-2026-09-20 22:14:08 [info] llm-router 0.1.0 starting
+2026-09-20 22:14:08 [info] khavis 0.1.0 starting
 2026-09-20 16:14:08 [info] Loaded 12 pools from config/pools.yaml
 2026-09-20 22:14:08 [info] Loaded 7 capabilities from config/capabilities.yaml
 2026-09-20 22:14:08 [info] Health-check loop started (every 30s)
@@ -147,7 +147,7 @@ You should see:
 In another terminal, run the diagnostic:
 
 ```bash
-llm-router doctor
+khavis doctor
 ```
 
 Output:
@@ -215,7 +215,7 @@ The interesting bit. Replace that curl with this Python:
 
 ```python
 # hello_routing.py
-from llm_router import Router
+from khavis import Router
 
 router = Router()  # reads config/*.yaml
 
@@ -305,7 +305,7 @@ The router delegates streaming to the underlying pool. Each chunk is one dict; `
 The killer feature for me. A planner → translator → critic pipeline:
 
 ```python
-from llm_router import Router, PipelineStep
+from khavis import Router, PipelineStep
 
 router = Router()
 
@@ -358,31 +358,31 @@ If you prefer containers:
 
 ```bash
 docker run -d \
-  --name llm-router \
+  --name khavis \
   -p 8080:8080 \
   -v $(pwd)/config:/app/config \
   -v $(pwd)/audit:/app/audit \
   --env-file .env \
-  kiddhsu/llm-router:0.1.0
+  kiddhsu/khavis:0.1.0
 ```
 
 Check logs:
 
 ```bash
-docker logs -f llm-router
+docker logs -f khavis
 ```
 
 Stop:
 
 ```bash
-docker stop llm-router
+docker stop khavis
 ```
 
 ---
 
 ## What's next?
 
-You now have llm-router running. A few things to try:
+You now have K.H.A.V.I.S. running. A few things to try:
 
 1. **Stress test it.** Send 1,000 requests with `capability` randomly chosen and watch the audit log. You'll see failover in action.
 
@@ -408,22 +408,22 @@ You now have llm-router running. A few things to try:
    ```
    This is your new "single pane of glass" for LLM spend.
 
-5. **Add a plugin.** Want a provider I haven't shipped? `llm-router new-provider yourprovider` scaffolds it. About 80 lines.
+5. **Add a plugin.** Want a provider I haven't shipped? `khavis new-provider yourprovider` scaffolds it. About 80 lines.
 
-6. **Star the repo.** It genuinely helps: https://github.com/kiddhsu5/llm-router
+6. **Star the repo.** It genuinely helps: https://github.com/kiddhsu5/khavis
 
 ---
 
 ## Troubleshooting
 
 **The daemon won't start.**
-- Run `llm-router doctor` to see which pools are misconfigured.
+- Run `khavis doctor` to see which pools are misconfigured.
 - Check that `config/pools.yaml` is valid YAML.
-- Make sure you ran `llm-router init` in the directory you're serving from.
+- Make sure you ran `khavis init` in the directory you're serving from.
 
 **All my pools show `unhealthy`.**
 - Most likely: missing keys in `.env`. The daemon does not crash, it just marks the pool `unhealthy` until you add a key.
-- Run `llm-router doctor --verbose` for the actual error.
+- Run `khavis doctor --verbose` for the actual error.
 
 **Hot reload isn't picking up my changes.**
 - The daemon watches both `config/*.yaml` and `providers/*.py`.
@@ -440,17 +440,17 @@ You now have llm-router running. A few things to try:
 
 ## Where to learn more
 
-- **README** — https://github.com/kiddhsu5/llm-router
-- **Architecture doc** — https://github.com/kiddhsu5/llm-router/blob/main/docs/ARCHITECTURE.md
-- **Plugin contract** — https://github.com/kiddhsu5/llm-router/blob/main/providers/base.py
+- **README** — https://github.com/kiddhsu5/khavis
+- **Architecture doc** — https://github.com/kiddhsu5/khavis/blob/main/docs/ARCHITECTURE.md
+- **Plugin contract** — https://github.com/kiddhsu5/khavis/blob/main/providers/base.py
 - **Roadmap** — in the launch blog post
-- **Issues & discussions** — https://github.com/kiddhsu5/llm-router/issues
+- **Issues & discussions** — https://github.com/kiddhsu5/khavis/issues
 
 ---
 
 ## Closing
 
-llm-router is small (1,400 lines of core, 12 ~80-line plugins), boring (YAML config, JSONL logs, in-process state), and opinionated (capability tags, BYOK, local-first).
+K.H.A.V.I.S. is small (1,400 lines of core, 12 ~80-line plugins), boring (YAML config, JSONL logs, in-process state), and opinionated (capability tags, BYOK, local-first).
 
 If you've been writing `if provider == "openai"` chains in every project, give it 10 minutes. You might save yourself 11 PM on a Tuesday.
 

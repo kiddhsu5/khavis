@@ -1,4 +1,4 @@
-"""Pytest configuration & shared fixtures for llm-router tests.
+"""Pytest configuration & shared fixtures for K.H.A.V.I.S. tests.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.

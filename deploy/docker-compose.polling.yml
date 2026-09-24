@@ -1,4 +1,4 @@
-# docker-compose for llm-router-bot in **polling** mode.
+# docker-compose for khavis-bot in **polling** mode.
 #
 # Usage:
 #   cp deploy/.env.example .env  # fill in BOT_TOKEN, ALLOWED_CHAT_IDS
@@ -16,8 +16,8 @@ services:
     build:
       context: ..
       dockerfile: deploy/Dockerfile.polling
-    image: llm-router-bot:polling
-    container_name: llm-router-bot
+    image: khavis-bot:polling
+    container_name: khavis-bot
     restart: unless-stopped
     env_file: ../.env
     environment:

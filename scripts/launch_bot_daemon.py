@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Daemonize the llm-router Telegram dispatch bot.
+"""Daemonize the K.H.A.V.I.S. Telegram dispatch bot.
 
 Launches the bot via a POSIX double-fork so it survives the launching
 shell's exit. Mirrors what ``nohup`` does on macOS without depending on
@@ -133,7 +133,7 @@ def main() -> int:
         "--project-root",
         type=Path,
         default=DEFAULT_PROJECT_ROOT,
-        help="Path to the llm-router checkout (default: %(default)s)",
+        help="Path to the K.H.A.V.I.S. checkout (default: %(default)s)",
     )
     parser.add_argument(
         "--python",

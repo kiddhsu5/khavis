@@ -1,18 +1,18 @@
 # Frequently Asked Questions
 
-> **15+ common questions about llm-router.** If yours is not here, open a [Discussion](https://github.com/llm-router/llm-router/discussions).
+> **15+ common questions about khavis.** If yours is not here, open a [Discussion](https://github.com/kiddhsu5/khavis/discussions).
 
 ---
 
 ## General
 
-### 1. How is llm-router different from OpenRouter?
+### 1. How is K.H.A.V.I.S. different from OpenRouter?
 
 OpenRouter is a **hosted gateway**. You send requests to OpenRouter's servers, OpenRouter calls upstream providers on your behalf, and you pay OpenRouter.
 
-llm-router is a **self-hosted router** that runs on your machine. You send requests to *your* process, which calls the providers directly using *your* API keys. There is no llm-router company in the loop.
+K.H.A.V.I.S. is a **self-hosted router** that runs on your machine. You send requests to *your* process, which calls the providers directly using *your* API keys. There is no K.H.A.V.I.S. company in the loop.
 
-|                       | OpenRouter              | llm-router                          |
+|                       | OpenRouter              | K.H.A.V.I.S.                          |
 |-----------------------|-------------------------|-------------------------------------|
 | Hosting               | Their cloud             | Your box                            |
 | Billing               | Through OpenRouter      | Through your existing subscriptions |
@@ -23,26 +23,26 @@ llm-router is a **self-hosted router** that runs on your machine. You send reque
 
 \* *Aside from the actual provider calls you make.*
 
-### 2. How is llm-router different from LiteLLM?
+### 2. How is K.H.A.V.I.S. different from LiteLLM?
 
 [LiteLLM](https://github.com/BerriAI/litellm) is a translation layer. It gives you a uniform Python API to call many providers, and it is excellent at that job.
 
-llm-router is built on top of the same idea but adds:
+K.H.A.V.I.S. is built on top of the same idea but adds:
 
-- **Routing decisions.** LiteLLM lets you *call* a provider; llm-router decides *which* provider to call for you.
+- **Routing decisions.** LiteLLM lets you *call* a provider; K.H.A.V.I.S. decides *which* provider to call for you.
 - **Capability matching.** You request `code`, not `gpt-4o`.
 - **Fallback chains.** Quota hits trigger automatic rerouting, not exceptions.
 - **Multi-agent orchestration.** Built-in `Pipeline` / `DAG` / `Debate` primitives.
 - **Three-tier memory.** Working, episodic, semantic — out of the box.
 - **Audit & cost tracking.** Append-only JSONL, per-call attribution.
 
-If you only need a thin wrapper, LiteLLM is great. If you need a *router*, llm-router is built for you.
+If you only need a thin wrapper, LiteLLM is great. If you need a *router*, K.H.A.V.I.S. is built for you.
 
-### 3. Is llm-router a SaaS?
+### 3. Is K.H.A.V.I.S. a SaaS?
 
-No. There is no llm-router cloud. The whole project is self-hosted Apache 2.0 software. If someone is selling you "llm-router as a service", they are a third party.
+No. There is no K.H.A.V.I.S. cloud. The whole project is self-hosted Apache 2.0 software. If someone is selling you "K.H.A.V.I.S. as a service", they are a third party.
 
-### 4. What license is llm-router under?
+### 4. What license is K.H.A.V.I.S. under?
 
 [Apache License 2.0](../LICENSE). You can use it commercially, modify it, distribute it, and ship it inside proprietary products, as long as you keep the license notice and clearly mark any changes you make.
 
@@ -52,7 +52,7 @@ No. There is no llm-router cloud. The whole project is self-hosted Apache 2.0 so
 
 ### 5. Can I use my own API keys?
 
-Yes — that is the entire point. Every pool in `pools.yaml` references `${ENV_VAR}` placeholders. Put your keys in `.env` (or your secret manager) and the router picks them up at boot. llm-router never sees, stores, or proxies your keys to anyone other than the providers themselves.
+Yes — that is the entire point. Every pool in `pools.yaml` references `${ENV_VAR}` placeholders. Put your keys in `.env` (or your secret manager) and the router picks them up at boot. K.H.A.V.I.S. never sees, stores, or proxies your keys to anyone other than the providers themselves.
 
 ### 5b. What's BYOK — and which plugins need a separate API account?
 
@@ -76,19 +76,19 @@ Note that an **OpenAI Platform API key** is different from a ChatGPT Plus or Cha
 
 Write a single Python file under `providers/`, register it in `pools.yaml`, tag it in `capabilities.yaml`. The registry auto-discovers it on boot (or hot-reload). The full walkthrough is in [`PLUGIN_DEVELOPMENT.md`](PLUGIN_DEVELOPMENT.md). It usually takes 30–90 minutes for a straightforward provider.
 
-### 7. Does llm-router support fine-tuned models?
+### 7. Does K.H.A.V.I.S. support fine-tuned models?
 
 In v0.1.0, fine-tuned models are supported via per-pool `options.model` overrides — set the model name in `pools.yaml` to your fine-tuned ID and the provider plugin will request it. A first-class fine-tuned registry with hot-swap is planned for **v0.5.0**.
 
-### 8. Can I run llm-router without any cloud provider?
+### 8. Can I run K.H.A.V.I.S. without any cloud provider?
 
 Yes. Point every pool at `ollama-local`, and the router becomes a pure local-model dispatcher. You lose failover diversity but gain full offline operation. This is a popular setup for air-gapped environments.
 
-### 9. Does llm-router work behind a corporate proxy / firewall?
+### 9. Does K.H.A.V.I.S. work behind a corporate proxy / firewall?
 
 Yes. Set `HTTPS_PROXY` and `HTTP_PROXY` in the environment (standard `requests`/`httpx` conventions), and all provider calls will go through it. Self-signed CA certificates can be passed via `SSL_CERT_FILE`.
 
-### 10. How much overhead does llm-router add?
+### 10. How much overhead does K.H.A.V.I.S. add?
 
 For a happy-path request: ~1–3 ms of in-process routing logic on top of the provider's own latency. We measure overhead at p99 < 10 ms in benchmarks with 10 pools active. The routing layer does not stream bytes through itself — once a provider is selected, tokens stream directly to the caller.
 
@@ -96,9 +96,9 @@ For a happy-path request: ~1–3 ms of in-process routing logic on top of the pr
 
 ## Privacy & data
 
-### 11. What data does llm-router collect?
+### 11. What data does K.H.A.V.I.S. collect?
 
-**None, by default.** llm-router does not phone home. There is no telemetry, no usage beacon, no "phone home if it crashes" opt-out.
+**None, by default.** K.H.A.V.I.S. does not phone home. There is no telemetry, no usage beacon, no "phone home if it crashes" opt-out.
 
 What it *does* do locally:
 
@@ -109,40 +109,40 @@ You can disable the audit log entirely (`audit.log_file: /dev/null` on Unix, or 
 
 ### 12. Where do my prompts go?
 
-Directly to the provider whose pool served the request. llm-router does not proxy, log, or store the prompt content unless you explicitly enable a memory backend that does so.
+Directly to the provider whose pool served the request. K.H.A.V.I.S. does not proxy, log, or store the prompt content unless you explicitly enable a memory backend that does so.
 
-### 13. Is llm-router SOC 2 / HIPAA / GDPR compliant?
+### 13. Is K.H.A.V.I.S. SOC 2 / HIPAA / GDPR compliant?
 
-llm-router itself is just code — it inherits the compliance posture of wherever you run it. If you run it on a SOC 2-compliant cloud, in a HIPAA BAA, or under a GDPR-compliant data processing agreement, the *router* does not change that. What you should worry about is the same as without llm-router: which providers you send data to, and under what contract.
+K.H.A.V.I.S. itself is just code — it inherits the compliance posture of wherever you run it. If you run it on a SOC 2-compliant cloud, in a HIPAA BAA, or under a GDPR-compliant data processing agreement, the *router* does not change that. What you should worry about is the same as without khavis: which providers you send data to, and under what contract.
 
 The audit log is designed to help you demonstrate compliance (who accessed what, when), not to undermine it. Disable it if your auditor objects.
 
 ### 14. Can I disable hot reload for compliance reasons?
 
-Yes — set `LLM_ROUTER_NO_RELOAD=1` in the environment, or run with `--no-reload`. The router will refuse to re-read config until restarted.
+Yes — set `KHAVIS_NO_RELOAD=1` in the environment, or run with `--no-reload`. The router will refuse to re-read config until restarted.
 
 ---
 
 ## Operations
 
-### 15. How do I monitor llm-router in production?
+### 15. How do I monitor K.H.A.V.I.S. in production?
 
 Three options, pick one:
 
 1. **Audit log.** Ship `audit.jsonl` to your log aggregator (Vector, Filebeat, Fluent Bit). Every request is one line.
-2. **OpenTelemetry.** Install the optional `llm_router.otel` plugin and set `OTEL_EXPORTER_OTLP_ENDPOINT`. Metrics, traces, and logs all flow through OTLP.
+2. **OpenTelemetry.** Install the optional `khavis.otel` plugin and set `OTEL_EXPORTER_OTLP_ENDPOINT`. Metrics, traces, and logs all flow through OTLP.
 3. **`GET /v1/pools`.** Returns live health and quota for every configured pool. Hit it from your existing blackbox exporter.
 
-### 16. Can I run multiple llm-router instances for high availability?
+### 16. Can I run multiple K.H.A.V.I.S. instances for high availability?
 
-Yes, but you probably do not need to. A single llm-router process can serve thousands of requests per second on commodity hardware (the bottleneck is provider latency, not the router). If you do run multiple, they are stateless — point them at the same `config/` (read-only) and the same `audit/` directory (with file locking).
+Yes, but you probably do not need to. A single K.H.A.V.I.S. process can serve thousands of requests per second on commodity hardware (the bottleneck is provider latency, not the router). If you do run multiple, they are stateless — point them at the same `config/` (read-only) and the same `audit/` directory (with file locking).
 
 ### 17. How do I upgrade without downtime?
 
-llm-router supports zero-downtime config reloads (hot reload), but binary upgrades require a restart. Recommended:
+K.H.A.V.I.S. supports zero-downtime config reloads (hot reload), but binary upgrades require a restart. Recommended:
 
 1. Start the new version on a different port.
-2. Smoke-test it (`llm-router doctor`, a few `/v1/chat` calls).
+2. Smoke-test it (`khavis doctor`, a few `/v1/chat` calls).
 3. Flip your reverse proxy from the old version to the new.
 4. Shut down the old version.
 
@@ -156,8 +156,8 @@ See the [README roadmap](../README.md#roadmap). Highlights: cost budgeting (v0.2
 
 ## Troubleshooting quick links
 
-- `llm-router doctor` — first thing to run.
+- `khavis doctor` — first thing to run.
 - [`INSTALLATION.md`](../INSTALLATION.md) — common install errors.
 - [`docs/CONFIGURATION.md`](CONFIGURATION.md) — every YAML knob.
-- [GitHub Issues](https://github.com/llm-router/llm-router/issues) — bug reports.
-- [GitHub Discussions](https://github.com/llm-router/llm-router/discussions) — questions.
+- [GitHub Issues](https://github.com/kiddhsu5/khavis/issues) — bug reports.
+- [GitHub Discussions](https://github.com/kiddhsu5/khavis/discussions) — questions.

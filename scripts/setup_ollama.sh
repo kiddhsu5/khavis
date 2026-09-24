@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Setup helper for llm-router's local Ollama pools (Mac + Surface).
+# Setup helper for K.H.A.V.I.S.'s local Ollama pools (Mac + Surface).
 #
 # Validates that Ollama is reachable on each target host, pulls the
 # required model if it is missing, smoke-tests a 1-token generation,

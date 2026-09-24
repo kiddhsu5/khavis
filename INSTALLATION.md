@@ -6,7 +6,7 @@ This guide covers the full setup: prerequisites, three install paths, verificati
 
 ## Prerequisites
 
-llm-router is small. You probably already have most of these.
+K.H.A.V.I.S. is small. You probably already have most of these.
 
 ### Required
 
@@ -36,7 +36,7 @@ llm-router is small. You probably already have most of these.
 
 ## Install path A — pip (recommended)
 
-Best for: developers, contributors, anyone who wants to `import llm_router` from a script.
+Best for: developers, contributors, anyone who wants to `import khavis` from a script.
 
 ```bash
 # 1. Create a virtual environment
@@ -49,23 +49,23 @@ source .venv/bin/activate          # macOS / Linux
 
 # 3. Upgrade pip and install
 pip install --upgrade pip
-pip install llm-router
+pip install khavis
 
 # 4. Verify
-llm-router --version
+khavis --version
 ```
 
 You should see something like:
 
 ```
-llm-router 0.1.0 (python 3.11.x)
+khavis 0.1.0 (python 3.11.x)
 ```
 
 ### Installing from source (contributors)
 
 ```bash
-git clone https://github.com/llm-router/llm-router.git
-cd llm-router
+git clone https://github.com/kiddhsu5/khavis.git
+cd khavis
 python3.11 -m venv .venv && source .venv/bin/activate
 pip install -e ".[dev]"
 pytest -q
@@ -81,22 +81,22 @@ Best for: production, isolation, no host Python.
 
 ```bash
 # Pull the image
-docker pull ghcr.io/llm-router/llm-router:0.1.0
+docker pull ghcr.io/kiddhsu5/khavis:0.1.0
 
 # Run it
 docker run -d \
-  --name llm-router \
+  --name khavis \
   --restart unless-stopped \
   -p 8080:8080 \
   -v $(pwd)/config:/app/config \
   -v $(pwd)/.env:/app/.env:ro \
-  ghcr.io/llm-router/llm-router:0.1.0
+  ghcr.io/kiddhsu5/khavis:0.1.0
 ```
 
 Verify:
 
 ```bash
-docker logs llm-router
+docker logs khavis
 curl http://localhost:8080/healthz
 ```
 
@@ -106,7 +106,7 @@ curl http://localhost:8080/healthz
 # compose.yaml
 services:
   router:
-    image: ghcr.io/llm-router/llm-router:0.1.0
+    image: ghcr.io/kiddhsu5/khavis:0.1.0
     ports: ["8080:8080"]
     volumes:
       - ./config:/app/config
@@ -122,7 +122,7 @@ docker compose up -d
 
 ## Install path C — system Python (not recommended)
 
-You *can* install with `pip install --user llm-router`, but you lose dependency isolation. Only do this if you fully understand what you are installing alongside it.
+You *can* install with `pip install --user khavis`, but you lose dependency isolation. Only do this if you fully understand what you are installing alongside it.
 
 ---
 
@@ -131,8 +131,8 @@ You *can* install with `pip install --user llm-router`, but you lose dependency 
 ### 1. The CLI works
 
 ```bash
-llm-router --version
-llm-router doctor
+khavis --version
+khavis doctor
 ```
 
 `doctor` should report green for: Python version, config dir, plugin discovery, network egress to each provider you have keys for.
@@ -141,7 +141,7 @@ llm-router doctor
 
 ```bash
 mkdir -p ./config
-llm-router init
+khavis init
 ```
 
 This writes `config/capabilities.yaml`, `config/pools.yaml`, and `config/agents.yaml.example`.
@@ -149,13 +149,13 @@ This writes `config/capabilities.yaml`, `config/pools.yaml`, and `config/agents.
 ### 3. Start the daemon
 
 ```bash
-llm-router serve
+khavis serve
 ```
 
 You should see:
 
 ```
-INFO  boot  llm-router 0.1.0  pid=12345  config=./config
+INFO  boot  khavis 0.1.0  pid=12345  config=./config
 INFO  registry  discovered 12 plugins: MiniMax-M3, glm53, gemini-flash, gemini-pro, nvidia-cloud, volcano-ark-deepseek, volcano-ark-qwen, volcano-ark-doubao, openrouter-free, openai-api, claude-api, ollama-local
 INFO  serve  http://0.0.0.0:8080
 ```
@@ -197,7 +197,7 @@ You should see a record like:
 
 ## Setting up Ollama (optional)
 
-llm-router ships two Ollama pools out of the box — `Ollama-Mac` (the local
+K.H.A.V.I.S. ships two Ollama pools out of the box — `Ollama-Mac` (the local
 daemon at `http://localhost:11434`) and `Ollama-Surface` (a LAN peer at
 `http://$SURFACE_IP:11434`). Both reach into the same `ollama` plugin and
 discover the model you point them at via `config/pools.yaml`.
@@ -270,7 +270,7 @@ registers a startup scheduled task that runs `ollama serve`.
 
 ### Telegram dispatch (optional)
 
-If you want to drive llm-router from a phone, see
+If you want to drive K.H.A.V.I.S. from a phone, see
 [`docs/TELEGRAM_BOT.md`](docs/TELEGRAM_BOT.md). Three commands:
 
 ```bash
@@ -301,7 +301,7 @@ If you want a different model on either pool, override it in
 
 ## BYOK — Bring Your Own Keys
 
-Not every pool works out of the box. Some need a **separate API account** billed directly by the provider — that is the BYOK model: you keep control of every bill and there is no llm-router markup.
+Not every pool works out of the box. Some need a **separate API account** billed directly by the provider — that is the BYOK model: you keep control of every bill and there is no K.H.A.V.I.S. markup.
 
 ### Pools that work with your existing accounts
 
@@ -335,23 +335,23 @@ These pools ship **enabled in code** but the integration test will skip them gra
 
 ## Troubleshooting
 
-### `llm-router: command not found`
+### `khavis: command not found`
 
 Your virtualenv is not active. Run `source .venv/bin/activate` (or the Windows equivalent) and try again.
 
-### `ModuleNotFoundError: No module named 'llm_router'`
+### `ModuleNotFoundError: No module named 'khavis'`
 
 You installed somewhere Python is not looking. Try:
 
 ```bash
 which python
 which pip
-python -m pip show llm-router
+python -m pip show khavis
 ```
 
-If `python -m pip show` finds the package but plain `python` does not, you have multiple Pythons. Use `python -m llm_router ...` or fix your `PATH`.
+If `python -m pip show` finds the package but plain `python` does not, you have multiple Pythons. Use `python -m khavis ...` or fix your `PATH`.
 
-### `Permission denied` on `/var/log/llm-router`
+### `Permission denied` on `/var/log/khavis`
 
 The audit log path is not writable. Either:
 
@@ -377,10 +377,10 @@ Expected behavior! The router will fall back automatically. If you see it in the
 Make sure:
 
 - You are editing the file the daemon loaded (check `INFO boot` log line for `config=...`).
-- You did not set `LLM_ROUTER_NO_RELOAD=1`.
+- You did not set `KHAVIS_NO_RELOAD=1`.
 - Your editor did an atomic save (some editors truncate + rewrite, which trips the watcher; use `mv` instead of `>` if so).
 
-### `llm-router doctor` reports a missing plugin
+### `khavis doctor` reports a missing plugin
 
 A plugin class name in `pools.yaml` does not exist in `providers/`. Check:
 
@@ -391,7 +391,7 @@ A plugin class name in `pools.yaml` does not exist in `providers/`. Check:
 ### Docker container exits immediately
 
 ```bash
-docker logs llm-router
+docker logs khavis
 ```
 
 Common causes:
@@ -405,9 +405,9 @@ Common causes:
 ## Upgrading
 
 ```bash
-pip install --upgrade llm-router
+pip install --upgrade khavis
 # or for Docker
-docker pull ghcr.io/llm-router/llm-router:latest
+docker pull ghcr.io/kiddhsu5/khavis:latest
 ```
 
 Breaking changes between minor versions are listed in [`CHANGELOG.md`](../CHANGELOG.md). Patch versions are always backward compatible.
@@ -417,7 +417,7 @@ Breaking changes between minor versions are listed in [`CHANGELOG.md`](../CHANGE
 ## Uninstalling
 
 ```bash
-pip uninstall llm-router
+pip uninstall khavis
 # Optional cleanup
 rm -rf config/audit.jsonl config/memory.db
 ```
@@ -425,6 +425,6 @@ rm -rf config/audit.jsonl config/memory.db
 For Docker:
 
 ```bash
-docker stop llm-router && docker rm llm-router
-docker image rm ghcr.io/llm-router/llm-router:0.1.0
+docker stop khavis && docker rm khavis
+docker image rm ghcr.io/kiddhsu5/khavis:0.1.0
 ```

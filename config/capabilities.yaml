@@ -1,4 +1,4 @@
-# Capability → pool mappings for the llm-router.
+# Capability → pool mappings for the khavis.
 #
 # Each entry advertises a capability tag (see providers/* capabilities[])
 # and a list of pool names that satisfy it. ``weight`` controls the

@@ -1,4 +1,4 @@
-# llm-router 商業計畫書
+# K.H.A.V.I.S. 商業計畫書
 
 **版本：** 1.0
 **日期：** 2026 年 9 月
@@ -27,9 +27,9 @@
 
 ## 一、執行摘要 (Executive Summary)
 
-**llm-router** 是一個開源優先（open-source-first）的 LLM API 統一路由層，目標是為個人開發者與小型團隊提供一個簡單、可靠、可擴展的方式來管理他們日益龐大的 LLM 訂閱組合。在 2026 年的今天，一位典型的 AI 工程師平均擁有 2-4 個 LLM 訂閱（Claude Pro、ChatGPT Plus、Cursor Pro、GLM Coding Plan、Windsurf 等），但這些訂閱之間並不互通，使用者必須手動切換帳號、追蹤額度、處理配額中斷與模型能力差異化選擇。**llm-router** 透過單一 OpenAI 相容介面（OpenAI-compatible endpoint）整合 12 家 LLM 供應商（其中 4 家需另開 API 帳號，採 BYOK 模式），提供自動故障轉移（automatic failover）、基於任務能力的智慧路由（capability-based routing）以及跨供應商的配額管理（quota management），徹底解決這個痛點。
+**K.H.A.V.I.S.** 是一個開源優先（open-source-first）的 LLM API 統一路由層，目標是為個人開發者與小型團隊提供一個簡單、可靠、可擴展的方式來管理他們日益龐大的 LLM 訂閱組合。在 2026 年的今天，一位典型的 AI 工程師平均擁有 2-4 個 LLM 訂閱（Claude Pro、ChatGPT Plus、Cursor Pro、GLM Coding Plan、Windsurf 等），但這些訂閱之間並不互通，使用者必須手動切換帳號、追蹤額度、處理配額中斷與模型能力差異化選擇。**K.H.A.V.I.S.** 透過單一 OpenAI 相容介面（OpenAI-compatible endpoint）整合 12 家 LLM 供應商（其中 4 家需另開 API 帳號，採 BYOK 模式），提供自動故障轉移（automatic failover）、基於任務能力的智慧路由（capability-based routing）以及跨供應商的配額管理（quota management），徹底解決這個痛點。
 
-**產品定位上，llm-router** 採取「Local-first、China-friendly、Plugin-extensible、Coding-plan optimized」四個差異化方向。相較於國際競品 OpenRouter、LiteLLM、Portkey 與 OneAPI，我們專注於中國市場的 GLM Coding Plan、Qwen、Doubao、MiniMax 等本地模型生態，提供微信公眾號與知乎的本地化行銷通路，並且針對 Cursor、Cline、Aider、Continue 等 AI 編程工具的最佳化情境做了深度整合。我們的核心引擎以 Apache 2.0 授權開源，確保開發者社群可以自由採用並貢獻；同時透過託管雲端服務（Pro / Team / Enterprise）提供零設定開箱即用體驗、跨裝置同步、進階分析儀表板，以及企業級 SLA。
+**產品定位上，K.H.A.V.I.S.** 採取「Local-first、China-friendly、Plugin-extensible、Coding-plan optimized」四個差異化方向。相較於國際競品 OpenRouter、LiteLLM、Portkey 與 OneAPI，我們專注於中國市場的 GLM Coding Plan、Qwen、Doubao、MiniMax 等本地模型生態，提供微信公眾號與知乎的本地化行銷通路，並且針對 Cursor、Cline、Aider、Continue 等 AI 編程工具的最佳化情境做了深度整合。我們的核心引擎以 Apache 2.0 授權開源，確保開發者社群可以自由採用並貢獻；同時透過託管雲端服務（Pro / Team / Enterprise）提供零設定開箱即用體驗、跨裝置同步、進階分析儀表板，以及企業級 SLA。
 
 **目標市場** 包含三個層次：可服務市場（SAM）為全球約 80 萬名活躍 AI 開發者；可獲取市場（SOM）為主要在中文圈與 cross-border freelancer 的約 8 萬人；初期獲取目標（first-year target）為 5,000 名活躍使用者和 150 名付費客戶。我們的商業模式以免費開源版本建立社群護城河（community moat），並透過 9-500 美元/月的分層訂閱服務（Pro $9、Team $49、Enterprise $500+）實現變現。基於保守的財務模型假設，預估第一年（2026 Q4 至 2027 Q3）可達到約 USD 22,000 年化經常性收入（ARR），第二年結束可達 USD 280,000 ARR，並在第二年第三季實現單月損益兩平。
 
@@ -125,7 +125,7 @@
 
 ### 2.3 競爭格局
 
-| 維度 | **llm-router**（我們） | OpenRouter | LiteLLM | Portkey | OneAPI |
+| 維度 | **K.H.A.V.I.S.**（我們） | OpenRouter | LiteLLM | Portkey | OneAPI |
 |---|---|---|---|---|---|
 | **授權模式** | Apache 2.0 + SaaS | 閉源 + API marketplace | MIT + 商業版 | 閉源 SaaS | Apache 2.0 |
 | **支援 provider 數** | 12（含中國主流，4 個 BYOK） | 50+ | 100+ | 250+ | 30+ |
@@ -178,7 +178,7 @@
 
 - vLLM、Ollama、LM Studio 等本地推理工具普及
 - 開發者越來越習慣「self-host + open-source」的工作流
-- 這為 llm-router 的 open-source 策略提供了文化土壤
+- 這為 K.H.A.V.I.S. 的 open-source 策略提供了文化土壤
 
 #### 趨勢 5：法規與合規要求趨嚴（2026）
 
@@ -242,7 +242,7 @@
 # 使用者只需修改 base_url
 from openai import OpenAI
 client = OpenAI(
-    base_url="http://localhost:8080/v1",  # llm-router 本地端點
+    base_url="http://localhost:8080/v1",  # khavis 本地端點
     api_key="not-needed"
 )
 response = client.chat.completions.create(
@@ -352,7 +352,7 @@ class QuotaState:
 
 **範例 Plugin 骨架**：
 ```python
-from llm_router.plugins import ProviderPlugin
+from khavis.plugins import ProviderPlugin
 
 class CustomProvider(ProviderPlugin):
     name = "custom-provider"
@@ -577,9 +577,9 @@ class InternalResponse(BaseModel):
 
 ### 3.5 開源策略（Apache 2.0 + SaaS Hybrid）
 
-**核心引擎**：`llm-router-core`（Python 套件），以 Apache 2.0 授權開源。
+**核心引擎**：`khavis-core`（Python 套件），以 Apache 2.0 授權開源。
 
-**託管服務**：`llm-router-cloud`，閉源，提供：
+**託管服務**：`khavis-cloud`，閉源，提供：
 - 零設定 hosted instance
 - 跨裝置配置同步
 - 進階 analytics dashboard
@@ -627,7 +627,7 @@ class InternalResponse(BaseModel):
 **價格 vs 競品比較**：
 | 產品 | 個人層級 | 團隊層級 |
 |---|---|---|
-| **llm-router** | $9/mo | $49/mo（10 用戶） |
+| **K.H.A.V.I.S.** | $9/mo | $49/mo（10 用戶） |
 | OpenRouter | 按 token 抽成（無月費） | N/A |
 | Portkey | Free + 按量付費 | $199/mo 起 |
 | LiteLLM | Free OSS | 商業版需聯繫 |
@@ -847,7 +847,7 @@ LTV/CAC = $697 / $11.5 ≈ 60
 
 **執行要點**：
 1. **嵌入式 onboarding**：Pro tier 提供 14 天免費試用，無需信用卡
-2. **Viral loop**：用戶分享使用統計截圖（如「本週我透過 llm-router 節省了 12 小時」）
+2. **Viral loop**：用戶分享使用統計截圖（如「本週我透過 K.H.A.V.I.S. 節省了 12 小時」）
 3. **Referral program**：邀請朋友獲得 1 個月 Pro 免費
 4. **整合目錄**：與 Cursor、Cline、Continue、Roo Code 等編碼工具建立官方整合，列入它們的文件
 5. **YouTube 教學影片**：發布 5-10 個深度教學
@@ -1329,7 +1329,7 @@ Year 2 每月淨利潤（假設 800 客戶、ARPU $20、毛利率 80%）：
 - [專案 2]
 - [貢獻 1]
 
-**為什麼做 llm-router**：
+**為什麼做 K.H.A.V.I.S.**：
 - [個人痛點]
 - [觀察到的市場機會]
 - [技術熱情]
@@ -1492,7 +1492,7 @@ LLM 工程師市場正在經歷三個不可逆的結構性變化：
 
 **立即（本週）**：
 1. 完成 BUSINESS_PLAN.md（本文檔）
-2. 驗證 `llm-router-core` 最小可行版本可運行
+2. 驗證 `khavis-core` 最小可行版本可運行
 3. 設定 GitHub organization
 
 **Month 1**：
@@ -1529,7 +1529,7 @@ LLM 工程師市場正在經歷三個不可逆的結構性變化：
                           |                                 |
                           v                                 v
                    +------+---------------------------------+------+
-                   |            llm-router API Gateway             |
+                   |            khavis API Gateway             |
                    |  - Auth (API key, OAuth)                     |
                    |  - Rate limit (per-user, per-IP)             |
                    |  - Request logging                           |
@@ -1618,7 +1618,7 @@ LLM 工程師市場正在經歷三個不可逆的結構性變化：
 
 ```
 +-----------------------------------------------+
-|           llm-router-core                     |
+|           khavis-core                     |
 |  +-----------------+                          |
 |  | Plugin Registry |                          |
 |  +--------+--------+                          |
@@ -1696,7 +1696,7 @@ On Error:
 
 ### 對照表（10 個維度 × 5 個競品）
 
-| 維度 | **llm-router** | OpenRouter | LiteLLM | Portkey | OneAPI |
+| 維度 | **K.H.A.V.I.S.** | OpenRouter | LiteLLM | Portkey | OneAPI |
 |---|---|---|---|---|---|
 | **1. 授權模式** | Apache 2.0 + 託管 SaaS | 閉源 | MIT + 商業版 | 閉源 SaaS | Apache 2.0 |
 | **2. 開源 vs 閉源** | Open Core | 純閉源 | Open Core | 純閉源 | 完全開源 |
@@ -2006,10 +2006,10 @@ On Error:
 
 **聯絡資訊**：
 - Email：[founder@example.com]
-- GitHub：[github.com/llm-router]
-- Twitter/X：[@llm_router]
-- 微信公眾號：llm-router
-- Discord：[discord.gg/llm-router]
+- GitHub：[github.com/kiddhsu5/khavis]
+- Twitter/X：[@K.H.A.V.I.S.]
+- 微信公眾號：K.H.A.V.I.S.
+- Discord：[discord.gg/khavis]
 
 ---
 

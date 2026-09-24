@@ -1,6 +1,6 @@
 # Plugin Development
 
-Adding a new LLM provider to llm-router is intentionally a small job. A plugin is a single Python file with one class. The registry picks it up automatically; you do not touch any core code.
+Adding a new LLM provider to K.H.A.V.I.S. is intentionally a small job. A plugin is a single Python file with one class. The registry picks it up automatically; you do not touch any core code.
 
 This guide walks you through writing one from scratch and shipping it.
 
@@ -9,7 +9,7 @@ This guide walks you through writing one from scratch and shipping it.
 Every plugin subclasses `ProviderPlugin` (or duck-types it) and implements four things:
 
 ```python
-from llm_router.plugins import ProviderPlugin, ChatResponse, HealthStatus, QuotaStatus
+from khavis.plugins import ProviderPlugin, ChatResponse, HealthStatus, QuotaStatus
 
 class MyProvider(ProviderPlugin):
     name: str = "my-provider"             # unique, matches pools.yaml
@@ -67,12 +67,12 @@ touch providers/acme.py
 
 ```python
 # providers/acme.py
-"""AcmeAI provider plugin for llm-router."""
+"""AcmeAI provider plugin for khavis."""
 from __future__ import annotations
 
 import time
 import httpx
-from llm_router.plugins import (
+from khavis.plugins import (
     ProviderPlugin,
     ChatResponse,
     HealthStatus,
@@ -192,8 +192,8 @@ capabilities:
 ### 5. Reload and test
 
 ```bash
-llm-router reload
-llm-router chat --capability code --message "hello"
+khavis reload
+khavis chat --capability code --message "hello"
 ```
 
 That is the whole loop.

@@ -1,4 +1,4 @@
-# llm-router 交接文件
+# K.H.A.V.I.S. 交接文件
 
 > 給接手的工程師或 AI agent。目標是「讀完就能動手」，不必回頭翻對話紀錄。
 >
@@ -19,7 +19,7 @@
 
 ## 1. 專案一句話
 
-**llm-router 是「個人 / homelab 開發者的 BYOK 純粹主義 LLM 路由器」** —— 把 12 個 LLM pool 聚合成單一介面，做智慧路由、額度容錯、多 agent 協作。永遠 Apache 2.0、零 markup、self-host。
+**K.H.A.V.I.S. 是「個人 / homelab 開發者的 BYOK 純粹主義 LLM 路由器」** —— 把 12 個 LLM pool 聚合成單一介面，做智慧路由、額度容錯、多 agent 協作。永遠 Apache 2.0、零 markup、self-host。
 
 這個定位是護城河，不是行銷詞。`docs/STRATEGY.md` §7.2 明文寫著：**不要加付費 tier、不要做企業 sales、不要做 SaaS**。任何往這三件事靠的提案都要先回頭讀那一節。
 
@@ -33,7 +33,7 @@
 | --- | --- |
 | 核心路由器 `core/`（registry、capability 路由、audit log、YAML hot reload） | ✅ v0.1.0 已完成 |
 | 12 個 pool 的 `ProviderPlugin`（`providers/`） | ✅ 完成 |
-| Telegram 派工 bot `bot/`（三方 fan-out：claude / codex / llm-router） | ✅ 上線，polling 模式 |
+| Telegram 派工 bot `bot/`（三方 fan-out：claude / codex / K.H.A.V.I.S.） | ✅ 上線，polling 模式 |
 | 多 agent 流水線 `agents/`（planner→coder→debate→critic→verify→learn） | ✅ 完成 |
 | 公開狀態頁 `scripts/status_server.py` | ✅ 上線 `khavis.kiddhsu.taipei` |
 | Ollama 走 Tailscale（Mac / Surface 兩個 pool） | ✅ Mac 綠燈；Surface 待機器端處理 |
@@ -269,7 +269,7 @@ python3.12 -m mypy core providers agents bot
   🤖 Generated with [Claude Code](https://claude.com/claude-code)
   ```
 - Git 作者身分：`kiddhsu5 <kiddhsu5@users.noreply.github.com>`
-- repo 位址：`github.com/kiddhsu5/llm-router`（公開，Apache 2.0）
+- repo 位址：`github.com/kiddhsu5/khavis`（公開，Apache 2.0）
 
 ### 9.2 安全紅線（違反任一項都是事故）
 

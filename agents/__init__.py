@@ -1,4 +1,4 @@
-"""Multi-agent collaboration layer for the llm-router (Phase 3).
+"""Multi-agent collaboration layer for the K.H.A.V.I.S. (Phase 3).
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.

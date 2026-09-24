@@ -60,7 +60,7 @@ class TestJudgeBackendPick:
                     latency_ms=200,
                 ),
                 BackendResult(
-                    backend="llm-router",
+                    backend="khavis",
                     ok=False,
                     error="401",
                     model="m3",

@@ -3,7 +3,7 @@
 
 Example::
 
-    cd /Users/kiddhsu/data/llm-router
+    cd /Users/kiddhsu/data/khavis
     python3 examples/run_team.py
 
 The script demonstrates:
@@ -60,7 +60,7 @@ def _print_state(label: str, value: object) -> None:
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description="Run the llm-router team.")
+    parser = argparse.ArgumentParser(description="Run the K.H.A.V.I.S. team.")
     parser.add_argument("--task", default=SAMPLE_TASK, help="User task prompt.")
     parser.add_argument(
         "--session-id", default="demo-session",

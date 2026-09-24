@@ -1,8 +1,8 @@
-# Contributing to llm-router
+# Contributing to K.H.A.V.I.S.
 
-Thanks for being here. llm-router is small enough that any single PR is appreciated, and big enough that every contributor matters.
+Thanks for being here. K.H.A.V.I.S. is small enough that any single PR is appreciated, and big enough that every contributor matters.
 
-This document covers the *how*. For the *what*, see the [open issues](https://github.com/llm-router/llm-router/issues) and the [roadmap in the README](README.md#roadmap).
+This document covers the *how*. For the *what*, see the [open issues](https://github.com/kiddhsu5/khavis/issues) and the [roadmap in the README](README.md#roadmap).
 
 ---
 
@@ -24,8 +24,8 @@ Be kind. Disagree on the merits. Assume good faith. We follow the [Contributor C
 ## Development setup
 
 ```bash
-git clone https://github.com/llm-router/llm-router.git
-cd llm-router
+git clone https://github.com/kiddhsu5/khavis.git
+cd khavis
 python3.11 -m venv .venv && source .venv/bin/activate
 pip install -e ".[dev]"
 pre-commit install
@@ -40,7 +40,7 @@ pytest -q
 Type-check:
 
 ```bash
-mypy --strict llm_router
+mypy --strict khavis
 ```
 
 Lint:
@@ -145,19 +145,19 @@ update pools
 
 Every PR must include or update tests. We use `pytest`. Coverage thresholds:
 
-- `llm_router/core/` — 90% line coverage minimum.
-- `llm_router/plugins/` — 80% line coverage per plugin.
+- `khavis/core/` — 90% line coverage minimum.
+- `khavis/plugins/` — 80% line coverage per plugin.
 - New providers — at minimum: one happy-path test, one streaming test, one error test.
 
 Run coverage locally:
 
 ```bash
-pytest --cov=llm_router --cov-report=term-missing
+pytest --cov=khavis --cov-report=term-missing
 ```
 
 ### Conventions
 
-- Test files mirror source files: `llm_router/router.py` → `tests/test_router.py`.
+- Test files mirror source files: `khavis/router.py` → `tests/test_router.py`.
 - Use `respx` or `pytest-httpx` for HTTP mocking. **Never** make live network calls in tests.
 - Use `pytest-asyncio` for async tests; mark with `@pytest.mark.asyncio`.
 - Snapshot tests for serialised routing decisions live in `tests/snapshots/`.
@@ -214,7 +214,7 @@ A PR is mergeable when:
 ## Release process (for maintainers)
 
 1. Update `CHANGELOG.md` — move "Unreleased" items into a dated versioned section.
-2. Bump version in `pyproject.toml` and `llm_router/__init__.py`.
+2. Bump version in `pyproject.toml` and `khavis/__init__.py`.
 3. Tag: `git tag -s v0.X.Y -m "v0.X.Y"`.
 4. Push tag: `git push origin v0.X.Y`.
 5. CI builds and publishes to PyPI + ghcr.io.
@@ -230,8 +230,8 @@ We follow [Semantic Versioning](https://semver.org/):
 
 ## Where to ask for help
 
-- **General questions**: [GitHub Discussions](https://github.com/llm-router/llm-router/discussions).
-- **Bug reports**: [GitHub Issues](https://github.com/llm-router/llm-router/issues) with the bug report template.
+- **General questions**: [GitHub Discussions](https://github.com/kiddhsu5/khavis/discussions).
+- **Bug reports**: [GitHub Issues](https://github.com/kiddhsu5/khavis/issues) with the bug report template.
 - **Security**: see `SECURITY.md` — do not file public issues for vulnerabilities.
 
 ---
@@ -244,4 +244,4 @@ Contributors are listed in:
 - The GitHub contributors graph (automatic).
 - A future `CONTRIBUTORS.md` once we cross ~25 contributors.
 
-Thanks for helping make llm-router less painful for everyone juggling five LLM subscriptions.
+Thanks for helping make K.H.A.V.I.S. less painful for everyone juggling five LLM subscriptions.

@@ -1,4 +1,4 @@
-# Caddyfile for llm-router-bot.
+# Caddyfile for khavis-bot.
 #
 # Behaviour:
 #   - With ``deploy/certs/bot.kiddhsu.taipei/{fullchain,privkey}.pem`` mounted

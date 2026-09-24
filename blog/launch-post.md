@@ -1,4 +1,4 @@
-# I built llm-router because I was tired of my LLM subscriptions fighting each other
+# I built K.H.A.V.I.S. because I was tired of my LLM subscriptions fighting each other
 
 > **One endpoint for 12 LLM providers with zero quota interruption.**
 > Apache 2.0 · Self-hosted · BYOK · Pluggable
@@ -36,7 +36,7 @@ Then Gemini. Gemini worked, but it returned Python 2 syntax for my Flask middlew
 
 I sat there, in my underwear, with five open browser tabs, three API dashboards, and an error log. And I thought: *this is ridiculous.* I am paying for at least four LLM subscriptions at any given moment. None of them are full. There is no universe in which my *combined* available capacity cannot answer a single request. The problem is not capacity. The problem is that I am playing air traffic controller for my own APIs at midnight.
 
-That night I wrote the first 200 lines of `llm-router`. Six weekends later, it is what you're reading about.
+That night I wrote the first 200 lines of `khavis`. Six weekends later, it is what you're reading about.
 
 This post is the long version of what it does, why I built it that way, and how you can use it (or improve it) starting today.
 
@@ -65,7 +65,7 @@ The combined *headroom* across all of them is enormous. The router just needs to
 
 Every provider ships a different SDK. Different auth scheme, different streaming protocol, different function-call format, different token counter, different way of raising a rate-limit error.
 
-Before llm-router, my `chat()` function looked like this (and I'm not proud of it):
+Before K.H.A.V.I.S., my `chat()` function looked like this (and I'm not proud of it):
 
 ```python
 # Old code I had in production for 14 months. It worked. It was ugly.
@@ -117,7 +117,7 @@ I wanted OpenRouter's UX, but with *my* keys and *my* subscriptions as the routi
 
 When I asked "which model is best for X?" I had no real data. Each provider's dashboard counted differently. Some counted input and output. Some counted cached vs uncached. Some charged in USD, some in CNY, some in credits. My OpenAI dashboard said I spent $14 last month; my GLM dashboard said I spent 89 元; my mental model said "roughly the cost of two lunches".
 
-I wanted one place to see: *what request hit what pool, how long it took, what it cost in USD-equivalent, and whether it succeeded.* llm-router logs all of this, in one stream, in one currency, in one file.
+I wanted one place to see: *what request hit what pool, how long it took, what it cost in USD-equivalent, and whether it succeeded.* K.H.A.V.I.S. logs all of this, in one stream, in one currency, in one file.
 
 ---
 
@@ -125,7 +125,7 @@ I wanted one place to see: *what request hit what pool, how long it took, what i
 
 The list of properties I wanted was short:
 
-| Want | llm-router answer |
+| Want | K.H.A.V.I.S. answer |
 |---|---|
 | No quota interruption | Yes — silent failover on 429 / 5xx / context overflow |
 | Use my existing keys | Yes — BYOK, zero markup, runs on my box |
@@ -149,10 +149,10 @@ The tagline says it all: **"One endpoint for 12 LLM providers with zero quota in
 
 ```bash
 # 1. Install
-pip install llm-router
+pip install khavis
 
 # 2. Initialize a config in the current directory
-llm-router init
+khavis init
 
 # 3. Drop your API keys into the generated .env
 echo "ZHIPUAI_API_KEY=..."        >> .env   # GLM
@@ -162,7 +162,7 @@ echo "NVIDIA_API_KEY=..."         >> .env   # NVIDIA Cloud
 echo "OPENROUTER_API_KEY=..."     >> .env   # OpenRouter free tier
 
 # 4. Run the daemon (HTTP API on :8080 by default)
-llm-router serve
+khavis serve
 ```
 
 That's it. Now hit it:
@@ -188,7 +188,7 @@ The router will:
 
 If pool #1 returned a 429, the request would have gone to pool #2 without you knowing. You didn't write a fallback. You didn't configure a strategy. The router just did it.
 
-### What `llm-router init` produces
+### What `khavis init` produces
 
 ```
 .
@@ -215,11 +215,11 @@ Everything is a file you can diff in git. There is no database to migrate. There
 
 ## How the six layers fit together
 
-I tried to keep the architecture boring. Every system I trust runs on a small number of well-named layers. llm-router has six.
+I tried to keep the architecture boring. Every system I trust runs on a small number of well-named layers. K.H.A.V.I.S. has six.
 
 ```
                          ┌────────────────────────┐
-   Your app / agent ───► │   llm-router (core)    │
+   Your app / agent ───► │   khavis (core)    │
                          └──────────┬─────────────┘
                                     │
             ┌───────────────────────┼────────────────────────┐
@@ -338,7 +338,7 @@ The `after` picture: tell the router what you want to *do*. The router picks a p
 
 ```python
 # AFTER — caller declares intent
-from llm_router import Router
+from khavis import Router
 
 router = Router()  # loads config/pools.yaml + config/capabilities.yaml
 
@@ -416,7 +416,7 @@ This is the section I want you to actually try. Open a terminal. I'll wait.
 
 ```bash
 # 1. Make a fresh plugin scaffold
-llm-router new-provider myprovider
+khavis new-provider myprovider
 # -> creates providers/myprovider.py
 ```
 
@@ -425,7 +425,7 @@ You'll get a file that looks like this:
 ```python
 """Myprovider provider plugin.
 
-Auto-generated by `llm-router new-provider myprovider`.
+Auto-generated by `khavis new-provider myprovider`.
 Fill in the four required methods and you are done.
 """
 from __future__ import annotations
@@ -517,7 +517,7 @@ If your provider is genuinely weird (Anthropic native, Gemini native, etc.), you
 
 ```bash
 # the daemon picks up the new file automatically (it watches providers/)
-llm-router serve
+khavis serve
 # in another shell:
 curl -X POST http://localhost:8080/v1/chat \
   -H "Content-Type: application/json" \
@@ -574,7 +574,7 @@ Cost-equivalent (USD, full week):  $ 9.42
 Effective cost / 1k tokens:        $ 0.00031
 ```
 
-The headline number is the last row: **0 hard failures over 21k requests across 10 providers and 4 subscriptions.** Before llm-router, on the same workload, my old script had a 1.4% hard-failure rate (one in seventy requests returned a 429 that I had to manually retry). After llm-router, my call site never has to think about it.
+The headline number is the last row: **0 hard failures over 21k requests across 10 providers and 4 subscriptions.** Before K.H.A.V.I.S., on the same workload, my old script had a 1.4% hard-failure rate (one in seventy requests returned a 429 that I had to manually retry). After K.H.A.V.I.S., my call site never has to think about it.
 
 The 3.7% of requests that triggered a fallback all eventually succeeded. Most fallbacks were GLM-5.3 → GLM-5.3-Flash (when I burned through my monthly allotment) or DeepSeek-V4-Pro → Gemini-Flash (when Volcano Ark credits ran thin).
 
@@ -588,18 +588,18 @@ The 3.7% of requests that triggered a fallback all eventually succeeded. Most fa
 
 ## Trade-offs and what this is *not*
 
-I want to be honest about where llm-router will *not* help you.
+I want to be honest about where K.H.A.V.I.S. will *not* help you.
 
 ### What it's not
 
-- **It's not a hosted gateway.** There is no `router.llm-router.com`. You run it yourself. If you don't want to run it yourself, [OpenRouter](https://openrouter.ai/) exists and is great.
+- **It's not a hosted gateway.** There is no `router.khavis.com`. You run it yourself. If you don't want to run it yourself, [OpenRouter](https://openrouter.ai/) exists and is great.
 - **It's not a model aggregator.** I don't host any models. I don't resell any subscriptions. I just route to providers you already pay for.
 - **It's not a token-optimizer.** It will not compress your prompts, choose a cheaper model for you behind your back, or downgrade you silently. If you ask for `reasoning`, you get a reasoning model. Period.
-- **It's not a finetuning platform.** You cannot fine-tune models through llm-router. (You can route fine-tuning jobs to providers that support it — that's on the roadmap.)
+- **It's not a finetuning platform.** You cannot fine-tune models through khavis. (You can route fine-tuning jobs to providers that support it — that's on the roadmap.)
 - **It's not production-hardened for 1000+ QPS.** I run it at modest scale (a few dozen QPS at peak). It uses an in-memory registry and SQLite-backed memory; if you need Redis and Postgres and horizontal scaling, you will need to fork or wait for v0.3.
 - **It's not trying to replace the SDKs you already use.** The plugin system wraps them. If you have working OpenAI / Anthropic code, leave it alone.
 
-### When you should NOT use llm-router
+### When you should NOT use K.H.A.V.I.S.
 
 - You have one subscription and one use case. (Just call the SDK directly.)
 - You need a hosted SLA. (Use a hosted gateway.)
@@ -682,26 +682,26 @@ If you've been routing LLMs for longer than I have and you see a design choice y
 ### Install from PyPI
 
 ```bash
-pip install llm-router
+pip install khavis
 ```
 
 ### Install from source
 
 ```bash
-git clone https://github.com/kiddhsu5/llm-router.git
-cd llm-router
+git clone https://github.com/kiddhsu5/khavis.git
+cd khavis
 pip install -e .
 ```
 
 ### Docker
 
 ```bash
-docker pull kiddhsu/llm-router:0.1.0
+docker pull kiddhsu/khavis:0.1.0
 docker run -p 8080:8080 \
   -v $(pwd)/config:/app/config \
   -v $(pwd)/audit:/app/audit \
   --env-file .env \
-  kiddhsu/llm-router:0.1.0
+  kiddhsu/khavis:0.1.0
 ```
 
 ### Config schema (`config/pools.yaml`)
@@ -733,14 +733,14 @@ capabilities:
 ### CLI reference
 
 ```
-llm-router init                  # scaffold a config in the current dir
-llm-router serve                 # start the HTTP daemon (default :8080)
-llm-router serve --port 9000     # custom port
-llm-router new-provider <name>   # scaffold a new plugin file
-llm-router audit                 # pretty-print the audit log
-llm-router audit --since 24h     # last 24 hours only
-llm-router audit --pool GLM-5.3  # filter by pool
-llm-router doctor                # run health + quota checks, print a table
+khavis init                  # scaffold a config in the current dir
+khavis serve                 # start the HTTP daemon (default :8080)
+khavis serve --port 9000     # custom port
+khavis new-provider <name>   # scaffold a new plugin file
+khavis audit                 # pretty-print the audit log
+khavis audit --since 24h     # last 24 hours only
+khavis audit --pool GLM-5.3  # filter by pool
+khavis doctor                # run health + quota checks, print a table
 ```
 
 ### HTTP API
@@ -769,7 +769,7 @@ If `capability` is omitted, the router picks a default (`推理`).
 ### Troubleshooting
 
 **"All my pools are unhealthy."**
-Run `llm-router doctor`. It prints a table with each pool's health, endpoint, key presence, and last error. The most common cause is a missing key in `.env`.
+Run `khavis doctor`. It prints a table with each pool's health, endpoint, key presence, and last error. The most common cause is a missing key in `.env`.
 
 **"I want pool X to never be picked."**
 Comment it out of the relevant capability in `capabilities.yaml`, or set its weight to `0.0`.
@@ -781,7 +781,7 @@ The daemon watches both `config/*.yaml` and `providers/*.py` and reloads them in
 `Router.chat(..., strategy="weighted|round_robin|random")` lets you override per-request.
 
 **"I want to log to a different place."**
-Set `LLM_ROUTER_AUDIT_DIR=/var/log/llm-router` in the environment.
+Set `KHAVIS_AUDIT_DIR=/var/log/khavis` in the environment.
 
 **"I want a web UI."**
 v0.3 has one on the roadmap. For now, `tail -F audit/requests.jsonl | jq` is the spiritual equivalent.
@@ -790,9 +790,9 @@ v0.3 has one on the roadmap. For now, `tail -F audit/requests.jsonl | jq` is the
 
 ## Closing
 
-I built llm-router because I was tired of being the air traffic controller for my own subscriptions at 11:47 PM on a Tuesday.
+I built K.H.A.V.I.S. because I was tired of being the air traffic controller for my own subscriptions at 11:47 PM on a Tuesday.
 
-If that resonates, please [star the repo](https://github.com/kiddhsu5/llm-router), open an issue, send a PR, or just send me an email telling me what you built on top of it. This project will get better only if real people use it and tell me what's wrong.
+If that resonates, please [star the repo](https://github.com/kiddhsu5/khavis), open an issue, send a PR, or just send me an email telling me what you built on top of it. This project will get better only if real people use it and tell me what's wrong.
 
 — Kidd Hsu, 2026-09-20
 

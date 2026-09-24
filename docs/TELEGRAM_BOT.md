@@ -1,6 +1,6 @@
 # Telegram dispatch bot
 
-The `bot/` package turns the llm-router project into a Telegram bot that
+The `bot/` package turns the K.H.A.V.I.S. project into a Telegram bot that
 fans out a single user prompt to **multiple LLM backends in parallel**
 and reports the synthesized result back to the chat. The architecture
 is described in `/.claude/plans/keen-percolating-ladybug.md` (executed
@@ -13,20 +13,20 @@ Telegram ──webhook──▶ Caddy (TLS) ──▶ uvicorn (FastAPI)
                                               │
                   ┌───────────────────────────┼────────────────────────────┐
                   ▼                           ▼                            ▼
-          ClaudeBackend            CodexBackend              LLMRouterBackend
+          ClaudeBackend            CodexBackend              KhavisBackend
           `claude -p "..."`        `codex exec "..."`         in-process pool lookup
                   │                           │                            │
                   └─────────▶ Aggregator ◀────┴─────────▶ Telegram sendMessage
 ```
 
-`LLMRouterBackend` reuses `core.registry.PluginRegistry` + `apply_pools_config` so
+`KhavisBackend` reuses `core.registry.PluginRegistry` + `apply_pools_config` so
 the bot picks whichever pool the capability hint selects. No new HTTP
 plumbing for the gateway itself — the bot calls `plugin.chat()` in-process.
 
 ## Install
 
 ```bash
-cd /path/to/llm-router
+cd /path/to/khavis
 pip install -e .[bot]
 # or, without editable:
 pip install fastapi 'uvicorn[standard]' httpx 'python-telegram-bot==20.7'
@@ -68,8 +68,8 @@ curl "https://api.telegram.org/bot${BOT_TOKEN}/setWebhook?url=${PUBLIC_URL}/webh
 | `/start` | Welcome + allowlist check |
 | `/help` | Usage |
 | `/status` | Per-backend health snapshot |
-| `/pools` | llm-router pool list with capability tags |
-| `/run <prompt>` | Fan out to claude, codex, llm-router |
+| `/pools` | K.H.A.V.I.S. pool list with capability tags |
+| `/run <prompt>` | Fan out to claude, codex, K.H.A.V.I.S. |
 | `/run --only codex,claude <prompt>` | Subset |
 | `/run --capability code <prompt>` | Hint for the gateway's `CapabilityRouter` |
 
@@ -77,7 +77,7 @@ curl "https://api.telegram.org/bot${BOT_TOKEN}/setWebhook?url=${PUBLIC_URL}/webh
 
 - **`ClaudeBackend`** shells out: `claude -p --output-format json [--model <m>] <prompt>`. Parses JSON for `text` / `tokens_in` / `tokens_out`; falls back to raw stdout if JSON is absent.
 - **`CodexBackend`** shells out: `codex exec --json [-m <m>] <prompt>`. Retries without `--json` if the flag isn't accepted by your Codex version.
-- **`LLMRouterBackend`** is in-process: looks up the first healthy plugin with the requested capability, calls `plugin.chat()` in a thread executor (so the event loop stays free), returns the canonical OpenAI-style response.
+- **`KhavisBackend`** is in-process: looks up the first healthy plugin with the requested capability, calls `plugin.chat()` in a thread executor (so the event loop stays free), returns the canonical OpenAI-style response.
 
 Hard timeout per backend: `BACKEND_TIMEOUT_S` (default 180 s). Subprocesses are killed on timeout.
 
@@ -92,7 +92,7 @@ A single Telegram message, edited as results arrive:
 1.7 KB of suggested patch…
 ✅ codex (gpt-5, 8.9s · in=380 out=64)
 1.5 KB of suggested patch…
-✅ llm-router (Ollama-Mac / gemma4:e2b, 15.2s · in=401 out=72)
+✅ khavis (Ollama-Mac / gemma4:e2b, 15.2s · in=401 out=72)
 1.6 KB of suggested patch…
 
 🏁 consensus (from `claude`):
@@ -134,7 +134,7 @@ flow. The TL;DR:
 
 ```bash
 cp deploy/.env.example .env            # fill in BOT_TOKEN etc.
-docker build -t llm-router-bot -f deploy/Dockerfile .
+docker build -t khavis-bot -f deploy/Dockerfile .
 docker compose -f deploy/docker-compose.yml --env-file .env up -d
 curl https://bot.kiddhsu.taipei/healthz
 ```
@@ -155,4 +155,4 @@ once the bot is deployed.
 - Real streaming replies (each backend's `--output-format stream-json`)
 - Judge model replacing the longest-wins synthesis
 - Multi-user RBAC beyond the allowlist
-- HTTP service for the llm-router gateway itself (the bot imports it in-process)
+- HTTP service for the K.H.A.V.I.S. gateway itself (the bot imports it in-process)

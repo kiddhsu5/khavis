@@ -1,4 +1,4 @@
-# Multi-agent role definitions for the llm-router team.
+# Multi-agent role definitions for the K.H.A.V.I.S. team.
 #
 # Each entry maps a role name to its system prompt, capability tag,
 # sampling parameters and max-iteration budget. The values here OVERRIDE

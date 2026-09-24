@@ -1,6 +1,6 @@
 ---
 name: Pull request
-about: Submit a change to llm-router
+about: Submit a change to K.H.A.V.I.S.
 ---
 
 ## What changed

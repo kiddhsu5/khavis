@@ -1,7 +1,7 @@
 # Contributors
 
-> llm-router 由一群熱心的開源貢獻者共同打造。本檔案用於感謝每一位讓這個專案變得更好的人。
-> llm-router is built by a community of contributors. This file credits every person who has helped make the project better.
+> K.H.A.V.I.S. 由一群熱心的開源貢獻者共同打造。本檔案用於感謝每一位讓這個專案變得更好的人。
+> K.H.A.V.I.S. is built by a community of contributors. This file credits every person who has helped make the project better.
 
 ---
 
@@ -34,7 +34,7 @@
 | 🌐 | `translation` | Translated docs or UI |
 | ⚠️ | `test` | Wrote or improved tests |
 | 🔧 | `tool` | Tooling / plugin development |
-| 📢 | `talk` | Gave a talk or wrote a blog post about llm-router |
+| 📢 | `talk` | Gave a talk or wrote a blog post about K.H.A.V.I.S. |
 
 ---
 
@@ -44,7 +44,7 @@
 
 <!-- Add yourself: - [ ] @username ([#PR-number](url)) — emoji emoji emoji -->
 <!-- Example:
-- [x] @kiddhsu5 ([#1](https://github.com/kiddhsu5/llm-router/pull/1)) 💻 📖 ⚠️
+- [x] @kiddhsu5 ([#1](https://github.com/kiddhsu5/khavis/pull/1)) 💻 📖 ⚠️
 -->
 
 - [ ] _your handle here_
@@ -53,7 +53,7 @@
 
 <!-- Add yourself: - [ ] @username ([#issue-number](url)) -->
 <!-- Example:
-- [x] @anon-reporter ([#42](https://github.com/kiddhsu5/llm-router/issues/42))
+- [x] @anon-reporter ([#42](https://github.com/kiddhsu5/khavis/issues/42))
 -->
 
 - [ ] _your handle here_
@@ -77,7 +77,7 @@
 
 ### Early adopters
 
-Thanks to the first 10 users who starred the repo, filed thoughtful issues, or wrote about llm-router publicly:
+Thanks to the first 10 users who starred the repo, filed thoughtful issues, or wrote about K.H.A.V.I.S. publicly:
 
 - [ ] _your name / blog post URL_
 
@@ -92,7 +92,7 @@ After your first merged PR, add yourself in one of three ways:
 1. Open a PR to `CONTRIBUTORS.md`
 2. Add a line under the appropriate section:
    ```markdown
-   - [x] @your-handle ([#PR](https://github.com/kiddhsu5/llm-router/pull/N)) 💻 ⚠️
+   - [x] @your-handle ([#PR](https://github.com/kiddhsu5/khavis/pull/N)) 💻 ⚠️
    ```
 3. A maintainer will merge and the bot will regenerate the table
 
@@ -123,7 +123,7 @@ A maintainer-bot will open a follow-up PR.
 - [LiteLLM](https://github.com/BerriAI/litellm) — proved that a unified LLM interface is valuable
 - [OpenRouter](https://openrouter.ai) — proved that multi-provider routing works at scale
 - [LangChain](https://github.com/langchain-ai/langchain) — both an inspiration and a warning about over-abstraction
-- [LiteLLM Router](https://docs.litellm.ai/docs/routing) — closest spiritual predecessor
+- [LiteLLM](https://docs.litellm.ai/docs/routing) — closest spiritual predecessor
 
 ### Infrastructure
 

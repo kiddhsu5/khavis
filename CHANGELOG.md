@@ -1,6 +1,6 @@
 # Changelog
 
-All notable changes to llm-router are documented in this file.
+All notable changes to K.H.A.V.I.S. are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
@@ -14,7 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `anthropic>=0.40.0` to runtime dependencies (needed by the Claude-API plugin).
 - BYOK documentation in README and INSTALLATION — clear guidance on which pools require a separate billing account.
 - `scripts/setup_ollama.sh` — one-shot setup for Mac + Surface Ollama hosts; validates endpoint reachability, pulls required models if missing, smoke-tests each pool, and writes `SURFACE_IP` to `.env` for the Surface pool. Idempotent.
-- `bot/` package — Telegram dispatch bot (FastAPI + long-polling) that fans out a single user prompt to Claude Code + Codex + llm-router's own 12-pool gateway in parallel, aggregates results with attribution, and replies with a synthesized consensus. New `bot` optional-dependency group: `fastapi`, `uvicorn`, `httpx`, `python-telegram-bot`.
+- `bot/` package — Telegram dispatch bot (FastAPI + long-polling) that fans out a single user prompt to Claude Code + Codex + K.H.A.V.I.S.'s own 12-pool gateway in parallel, aggregates results with attribution, and replies with a synthesized consensus. New `bot` optional-dependency group: `fastapi`, `uvicorn`, `httpx`, `python-telegram-bot`.
 - `deploy/` directory — Docker + Caddyfile + Aliyun / Tencent Cloud deploy scripts; full operator guide in `deploy/README.md`. Health endpoint exposed at `/healthz`.
 - `docs/TELEGRAM_BOT.md` — operator-facing reference for the dispatch bot (commands, env vars, allowlist, deploy).
 
@@ -34,7 +34,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.1.0] — 2026-09-20
 
-The first public release of llm-router.
+The first public release of khavis.
 
 ### Added
 
@@ -71,12 +71,12 @@ The first public release of llm-router.
 - Per-request opt-in via the `memory={...}` kwarg.
 
 **CLI**
-- `llm-router init` — generate starter config files.
-- `llm-router serve` — run the HTTP daemon.
-- `llm-router chat` — one-shot chat from the terminal.
-- `llm-router doctor` — validate config and connectivity.
-- `llm-router reload` — manually trigger hot reload.
-- `llm-router agent run <name>` — run a named agent pipeline.
+- `khavis init` — generate starter config files.
+- `khavis serve` — run the HTTP daemon.
+- `khavis chat` — one-shot chat from the terminal.
+- `khavis doctor` — validate config and connectivity.
+- `khavis reload` — manually trigger hot reload.
+- `khavis agent run <name>` — run a named agent pipeline.
 
 **HTTP API**
 - `POST /v1/chat` — OpenAI-compatible chat completions.
@@ -96,7 +96,7 @@ The first public release of llm-router.
 
 **Quality**
 - `pytest` suite with `respx` for HTTP mocking.
-- `mypy --strict` clean across `llm_router/`.
+- `mypy --strict` clean across `khavis/`.
 - `ruff` lint and format enforced in CI.
 - Pre-commit hooks for format, lint, types.
 - GitHub Actions CI on Python 3.11 and 3.12.
@@ -119,5 +119,5 @@ Pre-public development. Not documented here.
 
 ---
 
-[Unreleased]: https://github.com/llm-router/llm-router/compare/v0.1.0...HEAD
-[0.1.0]: https://github.com/llm-router/llm-router/releases/tag/v0.1.0
+[Unreleased]: https://github.com/kiddhsu5/khavis/compare/v0.1.0...HEAD
+[0.1.0]: https://github.com/kiddhsu5/khavis/releases/tag/v0.1.0

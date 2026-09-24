@@ -1,4 +1,4 @@
-# llm-router
+# K.H.A.V.I.S.
 
 > **12 個 LLM 供應商的統一介面,具備智慧路由與零額度中斷。**
 
@@ -9,14 +9,25 @@
 
 ```
     ┌──────────────────────────────────────────────────────────────┐
-    │                       llm-router                             │
+    │                     K.H.A.V.I.S.                         │
     │       一個 API。十二個模型池。零額度中斷。                  │
     └──────────────────────────────────────────────────────────────┘
 ```
 
+### Router 開銷 (p95,真實 registry,mock I/O)
+
+| 項目 | 預算 | 實測 | 註 |
+| --- | --- | --- | --- |
+| 冷啟動 (`discovery_ms`) | 200 ms | **0.4 ms** | 12 個 plugin 的 importlib + class init |
+| YAML 重載 (`capability_load_ms`) | 50 ms | **9.2 ms** | hot reload 走同一條路徑 |
+| 每次請求路由 (`selection_ms`) | 2 ms | **0.02 ms** | 與 Bifrost 公開的 20μs 同量級 |
+| 端到端 (`chat_roundtrip_ms`) | 10 ms | **0.2 ms** | 只有 router 開銷;真正瓶頸在上游 LLM I/O |
+
+完整數字與方法: [`docs/BENCHMARKS.md`](docs/BENCHMARKS.md)。CI 會對上述預算做 assertion。
+
 ---
 
-## 為什麼選 llm-router?
+## 為什麼選 K.H.A.V.I.S.?
 
 如果你曾經訂閱過多個 LLM 服務,你一定經歷過這些痛點:
 
@@ -26,7 +37,7 @@
 - **你無法公平地做 benchmark。** 每家供應商的溫度預設、token 計價、計費單位都不同,要做蘋果對蘋果的比較就得自己寫膠水程式碼。
 - **你想要 fallback,不是 failover。** OpenRouter 確實有路由,但它不知道 *你的* MiniMax-M3 key、*你的* Volcano Ark 點數、*你的* 本地 Ollama 主機。
 
-**llm-router 是為那些「已經在付費給多家 LLM,只想讓它們一起好好工作」的人打造的。** 它把你訂閱的服務、免費額度、本地模型視為同一個具備能力標籤的大池子。當請求進來時,router 會挑出當下最好的模型、監控額度壓力,並在你看到 429 之前就靜默切換。
+**K.H.A.V.I.S. 是為那些「已經在付費給多家 LLM,只想讓它們一起好好工作」的人打造的。** 它把你訂閱的服務、免費額度、本地模型視為同一個具備能力標籤的大池子。當請求進來時,router 會挑出當下最好的模型、監控額度壓力,並在你看到 429 之前就靜默切換。
 
 這不是託管式 gateway,也不是 SaaS。這是一個 self-hosted、可插拔的 Python router,可以跑在你的筆電、home lab、CI 主機上,並完全尊重你既有的 API key。
 
@@ -55,7 +66,7 @@
 
 ```
                          ┌────────────────────────┐
-   你的 app / agent ───► │   llm-router (core)    │
+   你的 app / agent ───► │   K.H.A.V.I.S.     │
                          └──────────┬─────────────┘
                                     │
             ┌───────────────────────┼────────────────────────┐
@@ -84,13 +95,13 @@
 
 ```bash
 # 1. 安裝
-pip install llm-router
+pip install khavis
 
 # 2. 在當前目錄產生設定檔
-llm-router init
+khavis init
 
 # 3. 啟動 daemon(預設 HTTP API 在 :8080)
-llm-router serve
+khavis serve
 ```
 
 就這樣。在 `pools.yaml` 填入你的 API key,然後送出請求:
@@ -113,24 +124,24 @@ Router 會挑出當下最便宜、又具備 code 能力的 pool,遇到 429 就�
 python -m venv .venv
 source .venv/bin/activate        # Windows: .venv\Scripts\activate
 pip install --upgrade pip
-pip install llm-router
+pip install khavis
 ```
 
 驗證:
 
 ```bash
-llm-router --version
-llm-router doctor               # 檢查 Python、網路、若有本地 Ollama 也會檢查
+khavis --version
+khavis doctor               # 檢查 Python、網路、若有本地 Ollama 也會檢查
 ```
 
 ### 選項 B —— Docker(零安裝、完全隔離)
 
 ```bash
 docker run -d \
-  --name llm-router \
+  --name khavis \
   -p 8080:8080 \
   -v $(pwd)/config:/app/config \
-  ghcr.io/llm-router/llm-router:0.1.0
+  ghcr.io/kiddhsu5/khavis:0.1.0
 ```
 
 映像檔已預載所有 provider plugin。把 `config/` 目錄掛載進去,即可持久保存 key 與 routing 規則。
@@ -138,8 +149,8 @@ docker run -d \
 ### 選項 C —— 從原始碼安裝(給貢獻者)
 
 ```bash
-git clone https://github.com/llm-router/llm-router.git
-cd llm-router
+git clone https://github.com/kiddhsu5/khavis.git
+cd khavis
 python -m venv .venv && source .venv/bin/activate
 pip install -e ".[dev]"
 pytest -q
@@ -154,7 +165,7 @@ pytest -q
 ### 1. 基於 capability 的 chat
 
 ```python
-from llm_router import Router
+from khavis import Router
 
 router = Router.from_yaml("config/capabilities.yaml")
 
@@ -200,7 +211,7 @@ response = router.chat(
 ### 5. 多代理 orchestration
 
 ```python
-from llm_router.agents import Pipeline
+from khavis.agents import Pipeline
 
 pipeline = Pipeline([
     ("planner",  {"capability": "reasoning"}),
@@ -272,13 +283,13 @@ response = router.chat(capability="local", messages=messages)
 | `Claude-API`        | Anthropic API key                               | https://console.anthropic.com                          |
 | `NVIDIA-Cloud`      | NVIDIA NIM API key                              | https://build.nvidia.com(付費 GPU 點數)               |
 
-> **重要:** OpenAI Platform API key **不等於** ChatGPT Plus / ChatGPT GO 訂閱。Claude API 也 **不等於** Claude Code 或 Cursor —— 後兩者用自己的計費,不走 platform API。BYOK 的意思是 *由你決定* 要付哪些帳單,llm-router 不會再加一層抽成。
+> **重要:** OpenAI Platform API key **不等於** ChatGPT Plus / ChatGPT GO 訂閱。Claude API 也 **不等於** Claude Code 或 Cursor —— 後兩者用自己的計費,不走 platform API。BYOK 的意思是 *由你決定* 要付哪些帳單,K.H.A.V.I.S. 不會再加一層抽成。
 
 ---
 
 ## 設定
 
-llm-router 透過兩個 YAML 檔(以及選用的環境變數)設定:
+K.H.A.V.I.S. 透過兩個 YAML 檔(以及選用的環境變數)設定:
 
 | 檔案                              | 用途                                              |
 |-----------------------------------|------------------------------------------------------|
@@ -319,7 +330,7 @@ routing:
 
 ```python
 # providers/my_provider.py
-from llm_router.plugins import ProviderPlugin, ChatResponse
+from khavis.plugins import ProviderPlugin, ChatResponse
 
 class MyProvider(ProviderPlugin):
     name = "my-provider"
@@ -343,7 +354,7 @@ class MyProvider(ProviderPlugin):
 - [ ] **v0.6.0** —— 即時監控 pool 健康與額度的 Web UI。
 - [ ] **v1.0.0** —— 穩定的 plugin API、SemVer 保證、LTS 分支。
 
-有想法嗎?開個 issue,或在 [discussion board](https://github.com/llm-router/llm-router/discussions) 投票。
+有想法嗎?開個 issue,或在 [discussion board](https://github.com/kiddhsu5/khavis/discussions) 投票。
 
 ---
 
@@ -374,7 +385,7 @@ class MyProvider(ProviderPlugin):
 Apache License 2.0。完整內容請見 [`LICENSE`](LICENSE)。
 
 ```
-Copyright 2026 llm-router contributors
+Copyright 2026 khavis contributors
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -387,7 +398,7 @@ You may obtain a copy of the License at
 
 ## 致謝
 
-llm-router 站在巨人的肩膀上:
+K.H.A.V.I.S. 站在巨人的肩膀上:
 
 - [LiteLLM](https://github.com/BerriAI/litellm) 團隊,提供了 provider API 正規化的基礎。
 - [OpenRouter](https://openrouter.ai) 團隊,證明了 routing 這個概念可行。

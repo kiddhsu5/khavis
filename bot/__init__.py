@@ -1,4 +1,4 @@
-"""Telegram dispatch bot for llm-router.
+"""Telegram dispatch bot for khavis.
 
 Sub-modules:
 - ``config``     load token, allowed chat IDs, timeouts

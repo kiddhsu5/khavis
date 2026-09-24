@@ -1,11 +1,11 @@
-# Dockerfile for the llm-router Telegram dispatch bot in **polling** mode.
+# Dockerfile for the K.H.A.V.I.S. Telegram dispatch bot in **polling** mode.
 #
 # Polling mode makes outbound HTTPS calls to api.telegram.org — no
 # inbound port is required, no Caddy, no TLS, no DNS record needed.
 # Suitable for a single-user bot behind NAT or on a bare VPS with
 # only port 22 open.
 #
-# Build:   docker build -t llm-router-bot:polling -f deploy/Dockerfile.polling .
+# Build:   docker build -t khavis-bot:polling -f deploy/Dockerfile.polling .
 # Run:     docker compose -f deploy/docker-compose.polling.yml --env-file .env up -d
 #
 # Secrets (BOT_TOKEN, WEBHOOK_SECRET, ALLOWED_CHAT_IDS) come from the
@@ -22,7 +22,7 @@ WORKDIR /app
 
 # Runtime deps. ``requirements.txt`` carries the multi-agent stack
 # (anthropic / langgraph / langchain-* / chromadb) which the bot's
-# ``llm-router`` backend needs; ``.[bot]`` adds the FastAPI + httpx
+# ``khavis`` backend needs; ``.[bot]`` adds the FastAPI + httpx
 # pieces the Telegram webhook/polling layer needs. No editable install.
 COPY pyproject.toml requirements.txt ./
 COPY core     ./core

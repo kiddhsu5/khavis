@@ -1,4 +1,4 @@
-name: llm-router-docker
+name: khavis-docker
 
 on:
   push:
@@ -12,7 +12,7 @@ permissions:
   packages: write
 
 env:
-  IMAGE_NAME: llm-router
+  IMAGE_NAME: K.H.A.V.I.S.
 
 jobs:
   build:
@@ -43,7 +43,7 @@ jobs:
           flavor: |
             latest=auto
           labels: |
-            org.opencontainers.image.title=llm-router
+            org.opencontainers.image.title=K.H.A.V.I.S.
             org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
             org.opencontainers.image.licenses=Apache-2.0
 

@@ -1,15 +1,15 @@
-# llm-router code examples
+# K.H.A.V.I.S. code examples
 
 > Ten concrete, runnable examples covering the common use cases.
-> Tested against `llm-router 0.1.0`. Open a terminal and try them in order.
+> Tested against `K.H.A.V.I.S. 0.1.0`. Open a terminal and try them in order.
 
 **Setup assumed for all examples:**
 
 ```bash
-pip install llm-router
-llm-router init
+pip install khavis
+khavis init
 cp .env.example .env  # then fill in your keys
-llm-router serve      # in another terminal
+khavis serve      # in another terminal
 ```
 
 All examples assume the daemon is running on `http://localhost:8080`.
@@ -22,7 +22,7 @@ The simplest possible call. No capability specified — router picks the default
 
 ```python
 # examples/01_basic_chat.py
-from llm_router import Router
+from khavis import Router
 
 router = Router()
 
@@ -56,7 +56,7 @@ When you ask for a Chinese task, the router picks from pools that advertise the 
 
 ```python
 # examples/02_chinese_task.py
-from llm_router import Router
+from khavis import Router
 
 router = Router()
 
@@ -96,7 +96,7 @@ The candidate set for `中文` includes MiniMax-M3, GLM-5.3, DeepSeek-V4-Pro, De
 
 ```python
 # examples/03_code_generation.py
-from llm_router import Router
+from khavis import Router
 
 router = Router()
 
@@ -164,7 +164,7 @@ def parse_duration(s: str) -> timedelta:
 
 ```python
 # examples/04_embedding.py
-from llm_router import Router
+from khavis import Router
 
 router = Router()
 
@@ -209,7 +209,7 @@ ollama pull nomic-embed-text
 
 ```python
 # examples/05_streaming.py
-from llm_router import Router
+from khavis import Router
 
 router = Router()
 
@@ -248,7 +248,7 @@ You can simulate a pool failure and watch the router fall over.
 
 ```python
 # examples/06_fallback_chain.py
-from llm_router import Router, PoolUnavailable
+from khavis import Router, PoolUnavailable
 
 router = Router()
 
@@ -296,7 +296,7 @@ grep "fallback_chain" audit/requests.jsonl | tail -5 | jq
 
 ```python
 # examples/07_quota_monitoring.py
-from llm_router import Router
+from khavis import Router
 
 router = Router()
 
@@ -363,7 +363,7 @@ No restart needed (hot reload). Now use it:
 
 ```python
 # examples/08_custom_capability.py
-from llm_router import Router
+from khavis import Router
 
 router = Router()
 
@@ -397,11 +397,11 @@ The capability tag is a string. It's not validated against any taxonomy. Invent 
 
 ## 9. Adding a new provider
 
-Walk through the full flow of adding a provider that doesn't ship with llm-router.
+Walk through the full flow of adding a provider that doesn't ship with khavis.
 
 ```bash
 # 1. Scaffold a new plugin
-llm-router new-provider together
+khavis new-provider together
 # → creates providers/together.py with the abstract base class implemented
 ```
 
@@ -493,7 +493,7 @@ Register the pool:
 That's it. The daemon hot-reloads. Test it:
 
 ```bash
-llm-router doctor  # Together-70B should now show up
+khavis doctor  # Together-70B should now show up
 curl -X POST http://localhost:8080/v1/chat \
   -H "Content-Type: application/json" \
   -d '{"capability":"推理","messages":[{"role":"user","content":"hi"}]}'
@@ -509,7 +509,7 @@ This is the killer feature for me. Three roles, three pools, one call.
 
 ```python
 # examples/10_multi_agent_debate.py
-from llm_router import Router, PipelineStep
+from khavis import Router, PipelineStep
 
 router = Router()
 

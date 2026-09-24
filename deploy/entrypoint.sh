@@ -1,5 +1,5 @@
 #!/bin/sh
-# Entrypoint for the llm-router-bot container.
+# Entrypoint for the khavis-bot container.
 # Starts Caddy in the background (TLS termination + reverse proxy),
 # then runs the FastAPI webhook server in the foreground.
 

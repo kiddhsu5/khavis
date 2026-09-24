@@ -1,6 +1,6 @@
 ---
 name: Feature request
-about: Suggest a new feature or improvement for llm-router
+about: Suggest a new feature or improvement for K.H.A.V.I.S.
 title: "[feature] "
 labels: ["enhancement", "triage"]
 assignees: []

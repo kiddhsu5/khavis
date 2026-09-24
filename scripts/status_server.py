@@ -7,7 +7,7 @@ paths, no admin surface. It is a billboard, not a control panel.
 
 Run with the project venv so ``core.registry`` imports resolve::
 
-    /root/llm-router-bot/.venv/bin/python -m scripts.status_server --port 80
+    /root/khavis-bot/.venv/bin/python -m scripts.status_server --port 80
 
 Cloudflare terminates TLS at the edge; the origin serves plain HTTP on
 ``:80`` *and* HTTPS with a throwaway self-signed cert on ``:443``. Both
@@ -257,7 +257,7 @@ def bot_health() -> dict[str, object]:
     """Is the Telegram dispatch bot process alive on this box?"""
     try:
         out = subprocess.run(
-            ["systemctl", "is-active", "llm-router-bot"],
+            ["systemctl", "is-active", "khavis-bot"],
             capture_output=True,
             text=True,
             timeout=3,
@@ -265,7 +265,7 @@ def bot_health() -> dict[str, object]:
         ).stdout.strip()
     except Exception as exc:  # noqa: BLE001
         return {"ok": False, "detail": _redact(repr(exc))}
-    return {"ok": out == "active", "detail": f"systemd llm-router-bot: {out or 'unknown'}"}
+    return {"ok": out == "active", "detail": f"systemd khavis-bot: {out or 'unknown'}"}
 
 
 def render_html(
@@ -302,7 +302,7 @@ def render_html(
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>khavis · llm-router status</title>
+<title>K.H.A.V.I.S. · status</title>
 <style>
   :root {{ color-scheme: light dark; }}
   body {{ font-family: ui-sans-serif, system-ui, "Segoe UI", Roboto, sans-serif;
@@ -331,7 +331,7 @@ def render_html(
 </style>
 </head>
 <body>
-  <h1><span>khavis</span> · llm-router</h1>
+  <h1><span>K.H.A.V.I.S.</span> · status</h1>
   <p class="sub">Unified interface for 12 LLM pools with smart routing and zero quota interruption.</p>
 
   <div class="badges">
@@ -359,7 +359,7 @@ def render_html(
 
   <footer>
     <p>
-      <a href="https://github.com/kiddhsu5/llm-router">github.com/kiddhsu5/llm-router</a>
+      <a href="https://github.com/kiddhsu5/khavis">github.com/kiddhsu5/khavis</a>
       · <a href="/healthz">/healthz</a>
       · rendered {time.strftime(GENERATED_AT_FORMAT, time.gmtime())}
       · cache age {'n/a' if cache.get('age_s') is None else str(cache.get('age_s')) + 's'}{' · refreshing' if cache.get('warming') else ''}

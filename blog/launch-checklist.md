@@ -1,6 +1,6 @@
-# llm-router launch checklist
+# K.H.A.V.I.S. launch checklist
 
-> Pre-launch and post-launch checklists for the public debut of llm-router v0.1.0.
+> Pre-launch and post-launch checklists for the public debut of K.H.A.V.I.S. v0.1.0.
 > Use this as a literal checklist — every item is something I have personally forgotten at least once.
 
 **Launch date:** 2026-09-20 (Tue)
@@ -12,7 +12,7 @@
 
 ### Repository hygiene
 
-- [ ] **GitHub repo created** — `kiddhsu/llm-router` (public, default branch `main`)
+- [ ] **GitHub repo created** — `kiddhsu/khavis` (public, default branch `main`)
 - [ ] **Repo description set** — `One endpoint for 12 LLM providers with zero quota interruption. Apache 2.0.`
 - [ ] **Website URL set** — `https://khavis.kiddhsu.taipei` (placeholder if no site yet)
 - [ ] **Topics set** — `llm`, `openai`, `anthropic`, `router`, `python`, `open-source`, `byok`, `multi-agent`, `capability-routing`
@@ -40,7 +40,7 @@
 - [ ] **Test coverage** ≥ 80% for core/, ≥ 60% for providers/
 - [ ] **Contract tests** for every provider plugin (chat returns OpenAI-shape; quota returns documented shape; health_check ok/down correctly)
 - [ ] **Integration test** with at least one real provider (use a $5 free-tier credit to verify the full path)
-- [ ] **Smoke test** — fresh `pip install llm-router && llm-router init && llm-router serve` from a clean venv
+- [ ] **Smoke test** — fresh `pip install khavis && khavis init && khavis serve` from a clean venv
 
 ### Packaging
 
@@ -49,11 +49,11 @@
 - [ ] **GitHub release published** — title `v0.1.0 — initial public release`, body auto-generated from CHANGELOG
 - [ ] **PyPI package published** — `python -m build && python -m twine upload dist/*`
   - [ ] Test PyPI first: `python -m twine upload --repository testpypi dist/*`
-  - [ ] Verify: `pip install llm-router` from a fresh venv works
-- [ ] **Docker image built** — `docker build -t kiddhsu/llm-router:0.1.0 .`
-- [ ] **Docker image pushed** — `docker push kiddhsu/llm-router:0.1.0`
-- [ ] **Docker image tagged `latest`** — `docker push kiddhsu/llm-router:latest`
-- [ ] **Docker Hub README** — `docker push kiddhsu/llm-router --all-tags` syncs the README
+  - [ ] Verify: `pip install khavis` from a fresh venv works
+- [ ] **Docker image built** — `docker build -t kiddhsu/khavis:0.1.0 .`
+- [ ] **Docker image pushed** — `docker push kiddhsu/khavis:0.1.0`
+- [ ] **Docker image tagged `latest`** — `docker push kiddhsu/khavis:latest`
+- [ ] **Docker Hub README** — `docker push kiddhsu/khavis --all-tags` syncs the README
 
 ### Documentation
 
@@ -90,16 +90,16 @@
 ## T-1 day: final prep
 
 - [ ] **Tag a release candidate** — `v0.1.0-rc.2` if you made changes this week
-- [ ] **Run `llm-router doctor` on a fresh machine** — every pool shows `ok` (or `down` with expected reason)
+- [ ] **Run `khavis doctor` on a fresh machine** — every pool shows `ok` (or `down` with expected reason)
 - [ ] **Run the full integration test suite** against real providers
 - [ ] **Sanity-check the audit log** — format is valid NDJSON, no PII leaking
 - [ ] **Sanity-check `pip install`** — from a brand-new venv, on Python 3.11, 3.12, 3.13
-- [ ] **Sanity-check Docker** — `docker run --rm kiddhsu/llm-router:0.1.0 llm-router --version` returns `0.1.0`
+- [ ] **Sanity-check Docker** — `docker run --rm kiddhsu/khavis:0.1.0 khavis --version` returns `0.1.0`
 - [ ] **Tag the actual release** — `v0.1.0`
-- [ ] **PyPI publish** — `twine upload dist/llm_router-0.1.0-py3-none-any.whl`
-- [ ] **Docker push** — `docker push kiddhsu/llm-router:0.1.0 && docker push kiddhsu/llm-router:latest`
+- [ ] **PyPI publish** — `twine upload dist/khavis-0.1.0-py3-none-any.whl`
+- [ ] **Docker push** — `docker push kiddhsu/khavis:0.1.0 && docker push kiddhsu/khavis:latest`
 - [ ] **GitHub release** — publish the release, copy CHANGELOG excerpt into the description
-- [ ] **Set up analytics** — simple counter on the repo (GitHub's own traffic tab), PyPI download stats (`pypistats.org/packages/llm-router`)
+- [ ] **Set up analytics** — simple counter on the repo (GitHub's own traffic tab), PyPI download stats (`pypistats.org/packages/khavis`)
 - [ ] **Set up notifications** — GitHub watch on issues, email alert on PyPI download anomalies
 - [ ] **Sleep** — seriously. The launch will go better if you are not exhausted.
 
@@ -111,7 +111,7 @@ The goal of day 0 is **maximum signal, minimum chaos**. Two channels only: HN an
 
 ### 9:00 AM ET — Show HN
 
-- [ ] **Submit Show HN** — title: `Show HN: llm-router – One endpoint for 12 LLM providers (BYOK)`
+- [ ] **Submit Show HN** — title: `Show HN: K.H.A.V.I.S. – One endpoint for 12 LLM providers (BYOK)`
 - [ ] **Use the draft** — copy-paste from `blog/show-hn-post.md`
 - [ ] **Verify the link** — the GitHub URL works and the README renders
 - [ ] **Set a timer** — come back in 30 minutes
@@ -163,7 +163,7 @@ The goal of day 0 is **maximum signal, minimum chaos**. Two channels only: HN an
 - [ ] **Lobsters** — submit `blog/launch-post.md`
 - [ ] **Tildes** — submit
 - [ ] **Chinese-language channels** — V2EX, 掘金 (juejin), 知乎, 微信公眾號 (use `blog/zhihu-post.md`)
-- [ ] **Indie Hackers** — share the journey: "how I built and launched llm-router in 6 weekends"
+- [ ] **Indie Hackers** — share the journey: "how I built and launched K.H.A.V.I.S. in 6 weekends"
 - [ ] **Hacker News comment on related threads** — only if genuinely helpful, never shill
 
 ### Day 3
@@ -181,7 +181,7 @@ By day 7 you should know whether the launch worked or didn't.
 - [ ] **Stars** — record the count, compare to expectations
 - [ ] **GitHub forks** — record
 - [ ] **GitHub issues opened** — categorize: bug / feature / question / docs
-- [ ] **PyPI downloads** — `pypistats.org/packages/llm-router`
+- [ ] **PyPI downloads** — `pypistats.org/packages/khavis`
 - [ ] **Docker pulls** — Docker Hub dashboard
 - [ ] **HN front-page time** — if any
 - [ ] **Top 3 issues** — file them, prioritize
@@ -202,7 +202,7 @@ By day 7 you should know whether the launch worked or didn't.
 - [ ] **Issue count** — open vs closed, average response time
 - [ ] **PR count** — open vs merged, average review time
 - [ ] **Discord/Slack members** (if set up)
-- [ ] **NPM-style "used by" count** — check `https://github.com/kiddhsu5/llm-router/network/dependents`
+- [ ] **NPM-style "used by" count** — check `https://github.com/kiddhsu5/khavis/network/dependents`
 
 ### Communication cadence
 

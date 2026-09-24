@@ -1,4 +1,4 @@
-name: llm-router-lint
+name: khavis-lint
 
 on:
   push:
@@ -11,7 +11,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: llm-router-lint-${{ github.ref }}
+  group: khavis-lint-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:

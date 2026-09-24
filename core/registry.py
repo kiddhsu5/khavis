@@ -50,7 +50,7 @@ _SKIP_NAMES = {"ProviderPlugin", "OpenAI", "genai", "requests"}
 
 
 def _project_root() -> Path:
-    """Return the llm-router project root (one level above this file)."""
+    """Return the K.H.A.V.I.S. project root (one level above this file)."""
     return Path(__file__).resolve().parent.parent
 
 

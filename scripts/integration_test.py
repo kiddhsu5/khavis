@@ -8,7 +8,7 @@ You may obtain a copy of the License at
     http://www.apache.org/licenses/LICENSE-2.0
 
 This script hits the 10 LLM provider endpoints configured for
-``llm-router`` with a tiny "ping" prompt (max_tokens=5) and prints a
+``khavis`` with a tiny "ping" prompt (max_tokens=5) and prints a
 colour-coded pass/fail report. Pools whose required API keys are
 missing are skipped with a warning rather than failed.
 
@@ -310,7 +310,7 @@ def _print_summary(results: list[PoolResult], total_s: float) -> None:
 # ---------------------------------------------------------------------------
 def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description="Ping every llm-router pool with a minimal prompt.",
+        description="Ping every K.H.A.V.I.S. pool with a minimal prompt.",
     )
     parser.add_argument(
         "--only",

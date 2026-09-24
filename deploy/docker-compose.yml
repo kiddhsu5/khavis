@@ -1,4 +1,4 @@
-# docker-compose.yml for llm-router-bot.
+# docker-compose.yml for khavis-bot.
 #
 # Usage:
 #   cp deploy/.env.example .env  # fill in BOT_TOKEN etc.

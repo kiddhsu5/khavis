@@ -1,6 +1,6 @@
 ---
 name: Bug report
-about: Report a bug in llm-router so we can investigate and fix it
+about: Report a bug in K.H.A.V.I.S. so we can investigate and fix it
 title: "[bug] "
 labels: ["bug", "triage"]
 assignees: []
@@ -12,7 +12,7 @@ A clear and concise description of what the bug is.
 
 ## Reproduction steps
 
-1. Configure llm-router with... (e.g. provider, model, capabilities)
+1. Configure K.H.A.V.I.S. with... (e.g. provider, model, capabilities)
 2. Run command... (e.g. `python scripts/start.sh`, `curl ...`)
 3. Observe failure
 
@@ -43,7 +43,7 @@ Paste logs here
 
 - OS / distro (e.g. Ubuntu 22.04, macOS 14):
 - Python version (`python3 --version`):
-- llm-router version / commit (`git rev-parse HEAD`):
+- K.H.A.V.I.S. version / commit (`git rev-parse HEAD`):
 - Installation method (pip / source / Docker):
 - Relevant provider / model:
 

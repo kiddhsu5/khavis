@@ -3,14 +3,14 @@ requires = ["hatchling>=1.21"]
 build-backend = "hatchling.build"
 
 [project]
-name = "llm-router"
+name = "khavis"
 version = "0.1.0"
 description = "A plugin-based router for multiple LLM providers with hot-reloadable config and capability-aware dispatch."
 readme = "README.md"
 requires-python = ">=3.11"
 license = { text = "Apache-2.0" }
 authors = [
-    { name = "llm-router maintainers", email = "maintainers@kiddhsu.taipei" },
+    { name = "K.H.A.V.I.S. maintainers", email = "maintainers@kiddhsu.taipei" },
 ]
 keywords = ["llm", "router", "openai", "gemini", "ollama", "ai-gateway"]
 classifiers = [
@@ -56,14 +56,14 @@ dev = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/kiddhsu5/llm-router"
-Documentation = "https://github.com/kiddhsu5/llm-router/blob/main/README.md"
-Issues = "https://github.com/kiddhsu5/llm-router/issues"
-Changelog = "https://github.com/kiddhsu5/llm-router/blob/main/CHANGELOG.md"
+Homepage = "https://github.com/kiddhsu5/khavis"
+Documentation = "https://github.com/kiddhsu5/khavis/blob/main/README.md"
+Issues = "https://github.com/kiddhsu5/khavis/issues"
+Changelog = "https://github.com/kiddhsu5/khavis/blob/main/CHANGELOG.md"
 
 [project.scripts]
-llm-router = "scripts.start:main"
-llm-router-bot = "bot.main:main"
+khavis = "scripts.start:main"
+khavis-bot = "bot.main:main"
 
 [tool.hatch.build.targets.wheel]
 packages = ["core", "providers", "bot"]

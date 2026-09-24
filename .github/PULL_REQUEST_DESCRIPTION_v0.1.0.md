@@ -2,15 +2,15 @@
 
 > **One endpoint. Twelve pools. Zero quota interruption.**
 
-This PR merges the initial public release of `llm-router` into `main` and
+This PR merges the initial public release of `khavis` into `main` and
 sets the stage for tagging `v0.1.0`. It is the result of ~14,200 lines of
 code, 84 files, and 148 green unit tests across the full router vertical.
 
 ---
 
-## What is llm-router?
+## What is K.H.A.V.I.S.?
 
-`llm-router` is a self-hosted, pluggable Python router that unifies the
+`khavis` is a self-hosted, pluggable Python router that unifies the
 LLM subscriptions, free tiers, and local models you already pay for behind
 one OpenAI-compatible HTTP API. Drop a Python file into `providers/` and
 the registry picks it up. Tag pools with capabilities (`code`, `vision`,
@@ -72,7 +72,7 @@ BYOK router that runs on your laptop, your homelab, or your CI box.
 ### CLI / HTTP
 - `scripts/start.sh`, `scripts/start.py` — daemon launcher
 - `scripts/test_plugins.py` — plugin discovery smoke test
-- `llm-router` console script with subcommands: `init`, `serve`, `chat`, `doctor`, `reload`, `agent run`
+- `khavis` console script with subcommands: `init`, `serve`, `chat`, `doctor`, `reload`, `agent run`
 
 ### DevOps
 - `.github/workflows/test.yml` — pytest on Python 3.11 / 3.12, Ubuntu + macOS
@@ -137,7 +137,7 @@ checks (it requires real API keys in repository secrets).
 ### Capability-based chat
 
 ```python
-from llm_router import Router
+from khavis import Router
 
 router = Router.from_yaml("config/capabilities.yaml")
 
@@ -152,7 +152,7 @@ print(f"Pool used: {response.pool}  Cost: ${response.cost_usd:.4f}")
 ### Multi-agent orchestration
 
 ```python
-from llm_router.agents import Pipeline
+from khavis.agents import Pipeline
 
 pipeline = Pipeline([
     ("planner",  {"capability": "reasoning"}),
@@ -199,7 +199,7 @@ change without a SemVer major bump until `v1.0.0`.
 - First-run: copy `.env.example` to `.env` and fill in API keys for the
   providers you want to use. Unset keys simply mean the corresponding
   pool is marked unhealthy by the doctor and skipped by the router.
-- `llm-router doctor` is the recommended pre-flight check.
+- `khavis doctor` is the recommended pre-flight check.
 
 ---
 
@@ -211,7 +211,7 @@ change without a SemVer major bump until `v1.0.0`.
 - [x] mypy clean on `core/` and `providers/` (`mypy core providers`)
 - [x] Documentation complete (README EN + zh-TW, ARCHITECTURE, PLUGIN_DEVELOPMENT, CONFIGURATION, FAQ)
 - [x] CI/CD configured (5 GitHub Actions workflows + Dependabot)
-- [x] Docker image builds locally (`docker build -t llm-router:dev .`)
+- [x] Docker image builds locally (`docker build -t khavis:dev .`)
 - [x] CHANGELOG.md updated under `[0.1.0]`
 - [x] LICENSE present (Apache 2.0)
 - [ ] First release tag `v0.1.0` created (will be done after merge)
@@ -237,7 +237,7 @@ change without a SemVer major bump until `v1.0.0`.
 
 ## Acknowledgments
 
-`llm-router` stands on the shoulders of giants:
+`khavis` stands on the shoulders of giants:
 
 - The [LiteLLM](https://github.com/BerriAI/litellm) team for normalising provider APIs and showing the community what an LLM gateway can be.
 - The [OpenRouter](https://openrouter.ai) team for proving the routing concept at scale.

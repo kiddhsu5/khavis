@@ -35,7 +35,7 @@ def _normalize_model(model: str | None) -> str | None:
 
     The native ``/api/chat`` endpoint expects a bare model tag like
     ``gemma4:e2b`` and rejects the ``ollama/`` prefix with HTTP 404.
-    Older llm-router configs and the default below historically shipped
+    Older K.H.A.V.I.S. configs and the default below historically shipped
     with the prefix; we tolerate it on the way in so users upgrading
     do not need to edit their pools.yaml.
     """

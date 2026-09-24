@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Tencent Cloud Lighthouse / CVM deploy helper for llm-router-bot.
+# Tencent Cloud Lighthouse / CVM deploy helper for khavis-bot.
 #
 # Prerequisites:
 #   - tccli configured (`tccli configure`)
@@ -9,25 +9,25 @@
 set -euo pipefail
 
 REGION="${TENCENTCLOUD_REGION:-ap-guangzhou}"
-NAMESPACE="${TENCENTCLOUD_TCR_NAMESPACE:-llm-router}"
+NAMESPACE="${TENCENTCLOUD_TCR_NAMESPACE:-khavis}"
 IMAGE_TAG="${IMAGE_TAG:-latest}"
 
 echo "== Building image =="
-docker build -t "$NAMESPACE/llm-router-bot:$IMAGE_TAG" -f deploy/Dockerfile .
+docker build -t "$NAMESPACE/khavis-bot:$IMAGE_TAG" -f deploy/Dockerfile .
 
 echo "== Pushing to TCR =="
 REGISTRY="${TENCENTCLOUD_TCR_REGISTRY:-${NAMESPACE}.tencentcr.com}"
-docker tag "$NAMESPACE/llm-router-bot:$IMAGE_TAG" "$REGISTRY/$NAMESPACE/llm-router-bot:$IMAGE_TAG"
-docker push "$REGISTRY/$NAMESPACE/llm-router-bot:$IMAGE_TAG"
+docker tag "$NAMESPACE/khavis-bot:$IMAGE_TAG" "$REGISTRY/$NAMESPACE/khavis-bot:$IMAGE_TAG"
+docker push "$REGISTRY/$NAMESPACE/khavis-bot:$IMAGE_TAG"
 
 echo "== Pulling on CVM + restarting =="
-TENCENTCLOUD_VM_HOST="${TENCENTCLOUD_VM_HOST:-llm-router-bot}"
+TENCENTCLOUD_VM_HOST="${TENCENTCLOUD_VM_HOST:-khavis-bot}"
 ssh "$TENCENTCLOUD_VM_HOST" <<EOF
   set -eu
-  cd ~/llm-router-bot || git clone https://github.com/kiddhsu5/llm-router.git llm-router-bot
-  cd llm-router-bot
+  cd ~/khavis-bot || git clone https://github.com/kiddhsu5/khavis.git khavis-bot
+  cd khavis-bot
   git pull --ff-only
-  docker pull $REGISTRY/$NAMESPACE/llm-router-bot:$IMAGE_TAG
+  docker pull $REGISTRY/$NAMESPACE/khavis-bot:$IMAGE_TAG
   docker compose -f deploy/docker-compose.yml --env-file .env up -d
 EOF
 

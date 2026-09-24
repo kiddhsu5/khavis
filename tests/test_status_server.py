@@ -1,4 +1,4 @@
-"""Tests for the public khavis status page.
+"""Tests for the public K.H.A.V.I.S. status page.
 
 The page is world-readable, so the only hard requirement here is that
 ``_redact`` never lets a credential-shaped string through. Everything

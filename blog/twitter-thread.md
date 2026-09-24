@@ -1,6 +1,6 @@
-# llm-router launch — Twitter / X thread (12 tweets)
+# K.H.A.V.I.S. launch — Twitter / X thread (12 tweets)
 
-A 12-tweet launch thread announcing llm-router. Each tweet is numbered and capped at 280 characters. The first tweet is the hook — designed to land on the "I hate my LLM subscriptions fighting" pain point.
+A 12-tweet launch thread announcing khavis. Each tweet is numbered and capped at 280 characters. The first tweet is the hook — designed to land on the "I hate my LLM subscriptions fighting" pain point.
 
 ---
 
@@ -14,7 +14,7 @@ A 12-tweet launch thread announcing llm-router. Each tweet is numbered and cappe
 >
 > Combined headroom: huge. My code: not routing it.
 >
-> I wrote the first 200 lines of llm-router that night.
+> I wrote the first 200 lines of K.H.A.V.I.S. that night.
 
 (280 chars)
 
@@ -45,13 +45,13 @@ A 12-tweet launch thread announcing llm-router. Each tweet is numbered and cappe
 
 ## Tweet 3 / 12 (the promise)
 
-> llm-router: open-source (Apache 2.0), self-hosted, BYOK.
+> khavis: open-source (Apache 2.0), self-hosted, BYOK.
 >
 > One endpoint, 12 providers, zero quota interruption.
 >
-> pip install llm-router
-> llm-router init
-> llm-router serve
+> pip install khavis
+> khavis init
+> khavis serve
 >
 > That's the entire install.
 
@@ -63,7 +63,7 @@ A 12-tweet launch thread announcing llm-router. Each tweet is numbered and cappe
 
 > the model after:
 >
-> from llm_router import Router
+> from khavis import Router
 >
 > r = Router().chat(
 >     capability="中文",
@@ -113,7 +113,7 @@ A 12-tweet launch thread announcing llm-router. Each tweet is numbered and cappe
 >
 > your subscriptions don't need to fight. They have complementary quota cycles.
 >
-> llm-router treats them as one Chinese-capable pool and rotates through them based on who's alive right now.
+> K.H.A.V.I.S. treats them as one Chinese-capable pool and rotates through them based on who's alive right now.
 
 (280 chars)
 
@@ -152,7 +152,7 @@ A 12-tweet launch thread announcing llm-router. Each tweet is numbered and cappe
 > 96.3% first-attempt success
 > 3.7% needed 1 fallback
 >
-> before llm-router: 1.4% hard failure rate. I'd just retry manually and pray.
+> before khavis: 1.4% hard failure rate. I'd just retry manually and pray.
 >
 > effective cost: $0.00031 / 1k tokens, blended.
 
@@ -178,11 +178,11 @@ A 12-tweet launch thread announcing llm-router. Each tweet is numbered and cappe
 
 ## Tweet 12 / 12 (CTA + link)
 
-> llm-router is Apache 2.0, self-hosted, BYOK, 1,400 lines of core + 12 plugins.
+> K.H.A.V.I.S. is Apache 2.0, self-hosted, BYOK, 1,400 lines of core + 12 plugins.
 >
 > star it, try it on a real workload, open issues, send a PR, translate the README.
 >
-> github: https://github.com/kiddhsu5/llm-router
+> github: https://github.com/kiddhsu5/khavis
 >
 > built by 1 person. nights + weekends. for the same reason you might use it.
 
@@ -205,7 +205,7 @@ If the thread stalls, post these as your own replies later:
 
 - "the before/after diff is ~600 lines deleted and ~40 lines added."
 - "if you only have ONE subscription, don't use this. Just call the SDK directly."
-- "OpenRouter is great. llm-router exists because OR doesn't know about your ChatGPT Plus or your Ollama box."
+- "OpenRouter is great. K.H.A.V.I.S. exists because OR doesn't know about your ChatGPT Plus or your Ollama box."
 - "BYOK means you BYOK. Don't commit .env to git. I learned that the hard way in 2023."
 
 ## Hashtags to consider (use sparingly, 1-2 max per tweet)

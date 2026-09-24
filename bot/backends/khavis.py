@@ -1,4 +1,4 @@
-"""In-process backend that runs the llm-router multi-agent team.
+"""In-process backend that runs the K.H.A.V.I.S. multi-agent team.
 
 Drives ``agents.run_team`` (planner → coder_a / coder_b → debate →
 critic → verify → learn) for a single user prompt, returning the
@@ -17,10 +17,10 @@ from ..models import BackendResult, DispatchEnvelope
 from .base import Backend, HealthResult
 
 
-class LLMRouterBackend(Backend):
-    """Runs ``agents.run_team`` against the llm-router pool registry."""
+class KhavisBackend(Backend):
+    """Runs ``agents.run_team`` against the K.H.A.V.I.S. pool registry."""
 
-    name = "llm-router"
+    name = "khavis"
 
     def __init__(self, session_id: str = "bot") -> None:
         self._session_id = session_id
@@ -53,7 +53,7 @@ class LLMRouterBackend(Backend):
             latency_ms = int((time.perf_counter() - t0) * 1000)
         except Exception as exc:  # noqa: BLE001
             return BackendResult(
-                backend="llm-router",
+                backend="khavis",
                 ok=False,
                 error=repr(exc),
             )
@@ -75,14 +75,14 @@ class LLMRouterBackend(Backend):
             fallback_used = state.get("fallback_used", False)
         except Exception as exc:  # noqa: BLE001
             return BackendResult(
-                backend="llm-router",
+                backend="khavis",
                 ok=False,
                 error=f"malformed team state: {exc!r}",
             )
 
         if not final:
             return BackendResult(
-                backend="llm-router",
+                backend="khavis",
                 ok=False,
                 error=error_msg or "team produced no answer",
                 model="run_team",
@@ -100,7 +100,7 @@ class LLMRouterBackend(Backend):
             extra["two_coders"] = "1"
 
         return BackendResult(
-            backend="llm-router",
+            backend="khavis",
             ok=True,
             text=final,
             model="agents.run_team",

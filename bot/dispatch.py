@@ -9,7 +9,7 @@ from collections.abc import AsyncIterator, Awaitable, Callable, Iterable
 from .backends.base import Backend
 from .models import BackendName, BackendResult, DispatchEnvelope, DispatchReport
 
-_ALL_BACKENDS: tuple[BackendName, ...] = ("claude", "codex", "llm-router")
+_ALL_BACKENDS: tuple[BackendName, ...] = ("claude", "codex", "khavis")
 
 # Kept as a module-level constant for backward compat with tests and any
 # caller that imports ``DEFAULT_BACKEND_ORDER``. Prefer
@@ -24,7 +24,7 @@ def default_backend_order() -> tuple[BackendName, ...]:
     Useful to temporarily disable a backend — e.g. ``claude`` before its
     OAuth login is done — without editing the code. Examples::
 
-        BOT_BACKENDS=codex,llm-router   # skip claude
+        BOT_BACKENDS=codex,K.H.A.V.I.S.   # skip claude
         BOT_BACKENDS=                    # (empty) = all three
 
     An unrecognised name is silently ignored. If *nothing* in the env

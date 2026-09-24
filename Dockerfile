@@ -19,10 +19,10 @@ RUN pip install --prefix=/install -r requirements.txt
 # ---- Stage 2: runtime --------------------------------------------------
 FROM python:3.12-slim AS runtime
 
-LABEL org.opencontainers.image.title="llm-router" \
+LABEL org.opencontainers.image.title="khavis" \
       org.opencontainers.image.description="A plugin-based router for multiple LLM providers" \
       org.opencontainers.image.licenses="Apache-2.0" \
-      org.opencontainers.image.source="https://github.com/kiddhsu5/llm-router"
+      org.opencontainers.image.source="https://github.com/kiddhsu5/khavis"
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
@@ -31,8 +31,8 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 RUN apt-get update \
     && apt-get install -y --no-install-recommends curl ca-certificates \
     && rm -rf /var/lib/apt/lists/* \
-    && groupadd --system --gid 1000 llmrouter \
-    && useradd  --system --uid 1000 --gid llmrouter --create-home llmrouter
+    && groupadd --system --gid 1000 K.H.A.V.I.S. \
+    && useradd  --system --uid 1000 --gid K.H.A.V.I.S. --create-home K.H.A.V.I.S.
 
 WORKDIR /app
 
@@ -43,9 +43,9 @@ COPY providers/   ./providers/
 COPY scripts/     ./scripts/
 COPY config/      ./config/
 
-RUN chmod +x ./scripts/start.sh && chown -R llmrouter:llmrouter /app
+RUN chmod +x ./scripts/start.sh && chown -R khavis:khavis /app
 
-USER llmrouter
+USER K.H.A.V.I.S.
 
 EXPOSE 8080
 

@@ -9,7 +9,7 @@ from typing import Any
 from .models import BackendName, DispatchEnvelope, IncomingMessage
 
 HELP_TEXT = """\
-*llm-router dispatch bot*
+*K.H.A.V.I.S. dispatch bot*
 
 Just type your prompt — no command needed. The bot fans it out to the
 configured backends and reports back.
@@ -71,7 +71,7 @@ def parse_run_command(text: str) -> tuple[list[BackendName] | None, str | None, 
     while i < len(args):
         a = args[i]
         if a == "--only" and i + 1 < len(args):
-            allowed: set[str] = {"claude", "codex", "llm-router"}
+            allowed: set[str] = {"claude", "codex", "khavis"}
             only = [p for p in args[i + 1].split(",") if p in allowed]  # type: ignore[list-item]
             i += 2
             continue
@@ -169,7 +169,7 @@ async def handle_pools(msg: IncomingMessage, deps: HandlerDeps) -> None:
     if not deps.pools:
         await api.send_message(msg.chat_id, "(no pools registered)", parse_mode=None)
         return
-    lines = ["*llm-router pools*"]
+    lines = ["*K.H.A.V.I.S. pools*"]
     for name, caps in deps.pools:
         cap_str = TelegramAPI.escape_markdown_v2(", ".join(caps))
         lines.append(f"• `{TelegramAPI.escape_markdown_v2(name)}` — {cap_str}")

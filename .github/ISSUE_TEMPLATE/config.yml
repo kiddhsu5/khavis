@@ -1,8 +1,8 @@
 blank_issues_enabled: false
 contact_links:
   - name: Discussions
-    url: https://github.com/kiddhsu5/llm-router/discussions
+    url: https://github.com/kiddhsu5/khavis/discussions
     about: Open-ended questions, ideas, and show-and-tell.
   - name: Security advisories
-    url: https://github.com/kiddhsu5/llm-router/security/advisories/new
+    url: https://github.com/kiddhsu5/khavis/security/advisories/new
     about: Please report security issues privately.

@@ -1,10 +1,10 @@
-# Dockerfile for the llm-router Telegram dispatch bot.
+# Dockerfile for the K.H.A.V.I.S. Telegram dispatch bot.
 #
-# Build:   docker build -t llm-router-bot -f deploy/Dockerfile .
+# Build:   docker build -t khavis-bot -f deploy/Dockerfile .
 # Run:     docker compose -f deploy/docker-compose.yml up -d
 #
 # The image ships:
-#   - the llm-router source tree (so the bot can import `core`/`providers`/`agents`)
+#   - the K.H.A.V.I.S. source tree (so the bot can import `core`/`providers`/`agents`)
 #   - the `bot/` package wired in
 #   - Caddy for TLS termination in front of the FastAPI webhook server
 #

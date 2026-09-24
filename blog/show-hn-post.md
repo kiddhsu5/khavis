@@ -1,4 +1,4 @@
-# Show HN: llm-router – One endpoint for 12 LLM providers (BYOK)
+# Show HN: K.H.A.V.I.S. – One endpoint for 12 LLM providers (BYOK)
 
 I built a small open-source router that treats all of my LLM subscriptions (GLM, ChatGPT, Cursor-bundled Claude, Gemini free tier, Volcano Ark, Ollama local) as one capability-tagged pool. When one pool saturates, traffic fails over to the next one within a single request — no restart, no special-case code, no markup.
 
@@ -17,7 +17,7 @@ OpenRouter solves this if you're willing to pay their gateway markup AND you onl
 ## Quick example
 
 ```python
-from llm_router import Router
+from khavis import Router
 
 router = Router()  # reads config/*.yaml
 
@@ -55,8 +55,8 @@ If the pool selected returns a 429 or 5xx, the request silently retries with the
 
 Python 3.11+, `openai` SDK for OpenAI-compatible providers, the `anthropic` SDK for Claude, PyYAML for config, FastAPI for the HTTP daemon, SQLite for episodic memory. About 1,400 lines of core + 12 ~80-line plugins. Apache 2.0.
 
-GitHub: https://github.com/kiddhsu5/llm-router
-PyPI: `pip install llm-router`
+GitHub: https://github.com/kiddhsu5/khavis
+PyPI: `pip install khavis`
 
 Happy to answer technical questions in the comments.
 
@@ -82,7 +82,7 @@ A: Plugins normalize the OpenAI tool-call shape on the way out. If a pool doesn'
 A: Each plugin has a `cost_per_1k_tokens` table in its metadata, in USD. The audit log normalizes everything to USD. For providers without public pricing, the table can be edited in the plugin or overridden in `pools.yaml`.
 
 **Q: What's the difference between this and LiteLLM?**
-A: LiteLLM is broader (40+ providers, more features) and more mature. llm-router is narrower and opinionated: capability-based routing (not model-name routing), local-first (Ollama is a first-class provider), and pluggable in 5 minutes via a single Python file. Different choices for different folks.
+A: LiteLLM is broader (40+ providers, more features) and more mature. K.H.A.V.I.S. is narrower and opinionated: capability-based routing (not model-name routing), local-first (Ollama is a first-class provider), and pluggable in 5 minutes via a single Python file. Different choices for different folks.
 
 **Q: Can I use this as a drop-in OpenAI client replacement?**
 A: Yes. The `/v1/chat` endpoint accepts an OpenAI-shaped request body and returns an OpenAI-shaped response. Existing SDK code that points at `http://localhost:8080/v1` will work.

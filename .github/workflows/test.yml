@@ -1,4 +1,4 @@
-name: llm-router-test
+name: khavis-test
 
 on:
   push:
@@ -55,6 +55,7 @@ jobs:
         run: |
           python -m pytest tests/ -v \
             --ignore=tests/integration \
+            --ignore=tests/benchmarks \
             --cov=core \
             --cov=providers \
             --cov-report=xml \
@@ -69,7 +70,43 @@ jobs:
         with:
           files: ./coverage.xml
           flags: unittests
-          name: llm-router-codecov
+          name: khavis-codecov
           fail_ci_if_error: false
         env:
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+
+  benchmarks:
+    name: benchmarks (ubuntu / py${{ env.PYTHON_VERSION }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Python ${{ env.PYTHON_VERSION }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: "pip"
+          cache-dependency-path: |
+            requirements.txt
+            pyproject.toml
+
+      - name: Cache pip dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: pip-${{ runner.os }}-py${{ env.PYTHON_VERSION }}-${{ hashFiles('requirements.txt', 'pyproject.toml') }}
+          restore-keys: |
+            pip-${{ runner.os }}-py${{ env.PYTHON_VERSION }}-
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt
+          python -m pip install pytest
+
+      - name: Run router benchmarks
+        run: |
+          python -m pytest tests/benchmarks/ -v --no-header -s
+

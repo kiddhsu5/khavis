@@ -1,14 +1,14 @@
 # Security Policy
 
-> llm-router 是由 Kidd Hsu 個人維護的開源專案,我們非常重視安全問題。本文件說明如何回報漏洞、預期的回應時間,以及我們對資訊透明度的承諾。
-> The llm-router maintainers take security seriously. This document explains how to report vulnerabilities, what to expect from us, and how we credit reporters.
+> K.H.A.V.I.S. 是由 Kidd Hsu 個人維護的開源專案,我們非常重視安全問題。本文件說明如何回報漏洞、預期的回應時間,以及我們對資訊透明度的承諾。
+> The K.H.A.V.I.S. maintainers take security seriously. This document explains how to report vulnerabilities, what to expect from us, and how we credit reporters.
 
 ---
 
 ## Supported Versions
 
 下表列出目前受到安全更新支援的版本。建議所有使用者升級至最新版本。
-The following versions of llm-router currently receive security updates. We strongly recommend staying on the latest release.
+The following versions of K.H.A.V.I.S. currently receive security updates. We strongly recommend staying on the latest release.
 
 | Version | Supported          | Notes |
 |---------|--------------------|-------|
@@ -29,7 +29,7 @@ We offer **two private channels** for disclosure. Use whichever you are most com
 ### Channel 1: GitHub Security Advisories (preferred)
 
 開啟一個 private security advisory:
-1. 前往 https://github.com/kiddhsu5/llm-router/security/advisories/new
+1. 前往 https://github.com/kiddhsu5/khavis/security/advisories/new
 2. 填寫漏洞詳情 (影響範圍、重現步驟、概念驗證)
 3. 提交後只有 maintainer 與 GitHub 信任的通報者會看到內容
 
@@ -42,7 +42,7 @@ This is the preferred channel because:
 
 寄信至 **security@kiddhsu.taipei**
 
-Subject line format: `[llm-router security] <short description>`
+Subject line format: `[K.H.A.V.I.S. security] <short description>`
 
 Please encrypt sensitive details using our PGP key:
 
@@ -89,7 +89,7 @@ You can use the template below:
 [what an attacker could do]
 
 **Environment:**
-- llm-router version:
+- khavis version:
 - Python version:
 - OS:
 - Deployment:
@@ -168,7 +168,7 @@ To be listed, include "credit me as: <name or handle>" in your report. To remain
 - `scripts/start.sh` — the Docker entrypoint
 - `Dockerfile` — supply chain of the published image
 - Any GitHub Action workflow that runs on PR or release
-- PyPI package `llm-router` and its dependencies (transitively — please report, but we may redirect to upstream)
+- PyPI package `khavis` and its dependencies (transitively — please report, but we may redirect to upstream)
 
 ### Out of scope
 
@@ -203,7 +203,7 @@ In return, we will:
 
 Security fixes are published through:
 
-1. **PyPI** — `pip install --upgrade llm-router`
+1. **PyPI** — `pip install --upgrade K.H.A.V.I.S.`
 2. **GitHub Releases** — tagged with `v0.1.x` and security advisory linked
 3. **Docker Hub** — `:0.1.x` and `:latest` tags updated
 4. **GHCR** — same tags
@@ -216,7 +216,7 @@ Watch this repo (click "Watch" → "Custom" → "Security alerts") to receive Gi
 ## Contact
 
 - **Private disclosure:** security@kiddhsu.taipei (PGP available)
-- **GitHub Security Advisories:** https://github.com/kiddhsu5/llm-router/security/advisories/new
-- **General questions:** open a Discussion at https://github.com/kiddhsu5/llm-router/discussions
+- **GitHub Security Advisories:** https://github.com/kiddhsu5/khavis/security/advisories/new
+- **General questions:** open a Discussion at https://github.com/kiddhsu5/khavis/discussions
 
-Thanks for keeping llm-router and its users safe.
+Thanks for keeping K.H.A.V.I.S. and its users safe.

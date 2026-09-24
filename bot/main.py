@@ -1,4 +1,4 @@
-"""FastAPI app: webhook + lifespan + ``llm-router-bot`` entry point.
+"""FastAPI app: webhook + lifespan + ``khavis-bot`` entry point.
 
 Two ways to run:
 
@@ -21,7 +21,7 @@ from typing import Any
 from fastapi import FastAPI, Request
 
 from .aggregator import format_report
-from .backends import ClaudeBackend, CodexBackend, JudgeBackend, LLMRouterBackend
+from .backends import ClaudeBackend, CodexBackend, JudgeBackend, KhavisBackend
 from .dispatch import DispatchRouter
 from .handlers import HandlerDeps, is_allowed, route_command
 from .models import BackendName, BackendResult, DispatchReport, IncomingMessage
@@ -40,7 +40,7 @@ def _build_router_and_deps(secrets: BotSecrets) -> tuple[DispatchRouter, Handler
     backends: dict[BackendName, Any] = {
         "claude": ClaudeBackend(timeout_s=secrets.backend_timeout_s),
         "codex": CodexBackend(timeout_s=secrets.backend_timeout_s),
-        "llm-router": LLMRouterBackend(),
+        "khavis": KhavisBackend(),
     }
     router = DispatchRouter(backends)
 
@@ -62,7 +62,7 @@ def _build_router_and_deps(secrets: BotSecrets) -> tuple[DispatchRouter, Handler
 
 
 async def _populate_pools(deps: HandlerDeps) -> None:
-    """Best-effort: load llm-router pools so ``/pools`` can answer."""
+    """Best-effort: load K.H.A.V.I.S. pools so ``/pools`` can answer."""
     try:
         from core.registry import PluginRegistry  # noqa: PLC0415
 
@@ -107,7 +107,7 @@ def _make_app(secrets: BotSecrets) -> FastAPI:
                     await task
             await deps.telegram.aclose()
 
-    app = FastAPI(title="llm-router dispatch bot", lifespan=lifespan)
+    app = FastAPI(title="K.H.A.V.I.S. dispatch bot", lifespan=lifespan)
 
     @app.get("/healthz")
     async def healthz() -> dict[str, Any]:
@@ -249,10 +249,10 @@ app = _make_app(_SECRETS)
 
 
 # ---------------------------------------------------------------------------
-# Console-script entry point: ``llm-router-bot``.
+# Console-script entry point: ``khavis-bot``.
 # ---------------------------------------------------------------------------
 def main() -> None:
-    parser = argparse.ArgumentParser(prog="llm-router-bot")
+    parser = argparse.ArgumentParser(prog="khavis-bot")
     parser.add_argument(
         "--mode",
         choices=("webhook", "polling"),

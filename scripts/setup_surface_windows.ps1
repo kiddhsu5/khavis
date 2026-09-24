@@ -118,7 +118,7 @@ function Ensure-OllamaAutoStart {
     $trigger = New-ScheduledTaskTrigger -AtStartup
     $principal = New-ScheduledTaskPrincipal -UserId "SYSTEM" -LogonType ServiceAccount -RunLevel Highest
     Register-ScheduledTask -TaskName $taskName -Action $action -Trigger $trigger `
-        -Principal $principal -Description "Ollama daemon for llm-router" | Out-Null
+        -Principal $principal -Description "Ollama daemon for K.H.A.V.I.S." | Out-Null
     Write-Host "  + scheduled task '$taskName' registered (runs ollama serve at boot)"
 }
 
@@ -139,21 +139,21 @@ function Pull-Model {
 Assert-Admin
 
 if ($Uninstall) {
-    Write-Host "== Removing llm-router Surface Ollama setup =="
+    Write-Host "== Removing K.H.A.V.I.S. Surface Ollama setup =="
     Remove-OllamaHostSystemEnv
-    Remove-FirewallRule -Name "Ollama 11434 (llm-router)"
+    Remove-FirewallRule -Name "Ollama 11434 (K.H.A.V.I.S.)"
     Write-Host "Done."
     exit 0
 }
 
-Write-Host "== Setting up llm-router Surface Ollama host =="
+Write-Host "== Setting up K.H.A.V.I.S. Surface Ollama host =="
 Write-Host "Target model: $Model"
 
 # 1) OLLAMA_HOST
 Set-OllamaHostSystemEnv -Value "0.0.0.0"
 
 # 2) Firewall
-Add-FirewallRule -Name "Ollama 11434 (llm-router)" -Port 11434
+Add-FirewallRule -Name "Ollama 11434 (K.H.A.V.I.S.)" -Port 11434
 
 # 3) Auto-start
 Ensure-OllamaAutoStart

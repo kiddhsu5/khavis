@@ -1,6 +1,6 @@
 # Configuration Reference
 
-llm-router reads three categories of configuration:
+K.H.A.V.I.S. reads three categories of configuration:
 
 1. **YAML files** in `config/` — declarative routing and pool definitions.
 2. **Environment variables** (and `.env`) — secrets and runtime overrides.
@@ -205,13 +205,13 @@ agents:
 Invoke:
 
 ```bash
-llm-router agent run code-reviewer --input "src/auth.py"
+khavis agent run code-reviewer --input "src/auth.py"
 ```
 
 Or from Python:
 
 ```python
-from llm_router import Router
+from khavis import Router
 router = Router.from_yaml("config/")
 result = router.agent("code-reviewer").run(input="src/auth.py")
 ```
@@ -222,20 +222,20 @@ result = router.agent("code-reviewer").run(input="src/auth.py")
 
 | Variable                  | Purpose                                            |
 |---------------------------|----------------------------------------------------|
-| `LLM_ROUTER_CONFIG_DIR`   | Directory holding `capabilities.yaml`, `pools.yaml`. Defaults to `./config`. |
-| `LLM_ROUTER_LOG_LEVEL`    | `DEBUG` \| `INFO` \| `WARNING` \| `ERROR`. Default: `INFO`. |
-| `LLM_ROUTER_HTTP_PORT`    | Port for `llm-router serve`. Default: `8080`.      |
-| `LLM_ROUTER_AUDIT_FILE`   | Override the audit JSONL path.                     |
-| `LLM_ROUTER_NO_RELOAD`    | Set `1` to disable hot reload (production).       |
+| `KHAVIS_CONFIG_DIR`   | Directory holding `capabilities.yaml`, `pools.yaml`. Defaults to `./config`. |
+| `KHAVIS_LOG_LEVEL`    | `DEBUG` \| `INFO` \| `WARNING` \| `ERROR`. Default: `INFO`. |
+| `KHAVIS_HTTP_PORT`    | Port for `khavis serve`. Default: `8080`.      |
+| `KHAVIS_AUDIT_FILE`   | Override the audit JSONL path.                     |
+| `KHAVIS_NO_RELOAD`    | Set `1` to disable hot reload (production).       |
 | `SURFACE_IP`              | LAN IP of the second Ollama host (Surface) used by the `Ollama-Surface` pool. Falls back to `surface.local` when unset. Set automatically by `bash scripts/setup_ollama.sh --surface --ip <addr>`. |
 | `<POOL>_API_KEY`          | Per-pool API key, referenced as `${...}` in `pools.yaml`. |
 | `OTEL_EXPORTER_OTLP_ENDPOINT` | Standard OTLP env var; honored by the OTEL plugin. |
 
 ### `.env` loading
 
-llm-router uses `python-dotenv` (or stdlib `os.environ` precedence, whichever is higher in the search path). On boot:
+K.H.A.V.I.S. uses `python-dotenv` (or stdlib `os.environ` precedence, whichever is higher in the search path). On boot:
 
-1. Load `.env` from `LLM_ROUTER_CONFIG_DIR/../.env` if present.
+1. Load `.env` from `KHAVIS_CONFIG_DIR/../.env` if present.
 2. Existing process env wins — `.env` only fills gaps.
 3. Secrets referenced as `${VAR}` in YAML are resolved after env loading.
 
@@ -257,7 +257,7 @@ ANTHROPIC_API_KEY=sk-ant-...
 
 ## Hot reload behavior
 
-llm-router watches the config directory and individual plugin files with `watchdog`. On change:
+K.H.A.V.I.S. watches the config directory and individual plugin files with `watchdog`. On change:
 
 | What changed            | What happens                                              |
 |-------------------------|-----------------------------------------------------------|
@@ -272,15 +272,15 @@ Reload is logged at INFO with the diff:
 INFO  config.reload  pools.yaml  +1 ~2 -0  capabilities.yaml  ~3
 ```
 
-To trigger reload manually: `llm-router reload`.
+To trigger reload manually: `khavis reload`.
 
-To disable hot reload (production hardening): set `LLM_ROUTER_NO_RELOAD=1`.
+To disable hot reload (production hardening): set `KHAVIS_NO_RELOAD=1`.
 
 ---
 
 ## Validation
 
-`llm-router doctor` validates:
+`khavis doctor` validates:
 
 - All YAML files parse.
 - Every pool referenced in `capabilities.yaml` is declared in `pools.yaml`.
@@ -292,5 +292,5 @@ To disable hot reload (production hardening): set `LLM_ROUTER_NO_RELOAD=1`.
 Run it after any config change:
 
 ```bash
-llm-router doctor
+khavis doctor
 ```

@@ -1,4 +1,4 @@
-"""Centralised environment loading for llm-router.
+"""Centralised environment loading for khavis.
 
 Loads variables from the project-root ``.env`` file exactly once per
 process, with explicit process-env precedence (existing values are kept;

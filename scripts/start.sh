@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Startup script for llm-router.
+# Startup script for khavis.
 #
 # Loads the plugin registry, validates every pool, starts the watchdog
 # hot-reloader on config/*.yaml, and prints a health snapshot. Designed
@@ -18,7 +18,7 @@ POOLS_FILE="$CONFIG_DIR/pools.yaml"
 export PYTHONPATH="$PROJECT_ROOT:${PYTHONPATH:-}"
 
 echo "=========================================="
-echo " llm-router starting"
+echo " K.H.A.V.I.S. starting"
 echo "   project root: $PROJECT_ROOT"
 echo "   python:       $(python3 --version 2>/dev/null || echo 'not found')"
 echo "=========================================="

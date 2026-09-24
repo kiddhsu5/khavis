@@ -1,6 +1,6 @@
 # v0.1.0 (2026-09-20) — Initial Release
 
-The first public release of `llm-router`. 84 files, ~14,200 lines of code,
+The first public release of `khavis`. 84 files, ~14,200 lines of code,
 148 green unit tests, 12 working LLM pools (8 always-on + 4 BYOK), and one
 OpenAI-compatible HTTP API that unifies them all.
 
@@ -97,12 +97,12 @@ integration test runner when their env var is unset. See the README
 
 ### CLI
 
-- `llm-router init` — generate starter config files
-- `llm-router serve` — run the HTTP daemon
-- `llm-router chat` — one-shot chat from the terminal
-- `llm-router doctor` — validate config and connectivity
-- `llm-router reload` — manually trigger hot reload
-- `llm-router agent run <name>` — run a named agent pipeline
+- `khavis init` — generate starter config files
+- `khavis serve` — run the HTTP daemon
+- `khavis chat` — one-shot chat from the terminal
+- `khavis doctor` — validate config and connectivity
+- `khavis reload` — manually trigger hot reload
+- `khavis agent run <name>` — run a named agent pipeline
 
 ### DevOps
 
@@ -170,24 +170,24 @@ mypy core providers
 ```bash
 python -m venv .venv && source .venv/bin/activate
 pip install --upgrade pip
-pip install llm-router
+pip install khavis
 ```
 
 ### Docker
 
 ```bash
 docker run -d \
-  --name llm-router \
+  --name khavis \
   -p 8080:8080 \
   -v $(pwd)/config:/app/config \
-  ghcr.io/llm-router/llm-router:0.1.0
+  ghcr.io/kiddhsu5/khavis:0.1.0
 ```
 
 ### From source
 
 ```bash
-git clone https://github.com/llm-router/llm-router.git
-cd llm-router
+git clone https://github.com/kiddhsu5/khavis.git
+cd khavis
 python -m venv .venv && source .venv/bin/activate
 pip install -e ".[dev]"
 pytest -q
@@ -210,14 +210,14 @@ the v0.1.0 surface area.
   by name in `pools.yaml` and the router will route to them like any
   other pool.
 - **OpenTelemetry exporter is optional.** It ships as the
-  `llm-router[otel]` extra and is not bundled into the default install
+  `khavis[otel]` extra and is not bundled into the default install
   to keep cold-start small.
 - **Plugin API marked "stable for v0.x".** We commit to not breaking
   `ProviderPlugin` within the v0.x series, but routing semantics may
   evolve. Anything marked "experimental" in the docs may change without
   a SemVer major bump until `v1.0.0`.
 - **LangGraph is an optional dep.** The multi-agent system requires
-  `pip install llm-router[agents]`. Without it, `Router.chat()` and the
+  `pip install khavis[agents]`. Without it, `Router.chat()` and the
   HTTP API still work fully; only the `agents/` subpackage and its
   tests are skipped (1 skipped test).
 - **CI integration tests require secrets.** Nightly live-provider smoke
@@ -236,7 +236,7 @@ Built by solo maintainer **Your Name** during Q3 2026.
 Contributions welcome — see [`CONTRIBUTING.md`](../CONTRIBUTING.md) for
 the PR process, code style, and provider plugin template.
 
-`llm-router` is released under the **Apache License 2.0**. It stands on
+`khavis` is released under the **Apache License 2.0**. It stands on
 the shoulders of:
 
 - [LiteLLM](https://github.com/BerriAI/litellm) — normalising provider APIs
@@ -264,13 +264,13 @@ release honest.
   richer readiness semantics.
 - **More pools** — Mistral, Anthropic Claude (subscription tier), Cohere,
   and at least one more Chinese provider (TBD with the community).
-- **First-party LangChain integration** — `llm_router.ChatModel` as a
+- **First-party LangChain integration** — `khavis.ChatModel` as a
   drop-in `BaseChatModel` subclass.
 
 Have an idea? Open an issue or vote on the
-[discussion board](https://github.com/llm-router/llm-router/discussions).
+[discussion board](https://github.com/kiddhsu5/khavis/discussions).
 
 ---
 
-[v0.1.0]: https://github.com/llm-router/llm-router/releases/tag/v0.1.0
-[Unreleased]: https://github.com/llm-router/llm-router/compare/v0.1.0...HEAD
+[v0.1.0]: https://github.com/kiddhsu5/khavis/releases/tag/v0.1.0
+[Unreleased]: https://github.com/kiddhsu5/khavis/compare/v0.1.0...HEAD

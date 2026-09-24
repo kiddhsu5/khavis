@@ -6,7 +6,7 @@ from typing import Literal
 
 from pydantic import BaseModel, Field
 
-BackendName = Literal["claude", "codex", "llm-router", "judge"]
+BackendName = Literal["claude", "codex", "khavis", "judge"]
 
 
 class IncomingMessage(BaseModel):
@@ -27,7 +27,7 @@ class DispatchEnvelope(BaseModel):
     chat_id: int
     prompt: str
     only: list[BackendName] | None = None  # None = fan out to all
-    capability: str | None = None  # hint for llm-router's CapabilityRouter
+    capability: str | None = None  # hint for K.H.A.V.I.S.'s CapabilityRouter
 
 
 class BackendResult(BaseModel):

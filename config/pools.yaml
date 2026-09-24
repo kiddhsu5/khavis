@@ -1,4 +1,4 @@
-# Pool configuration for the llm-router.
+# Pool configuration for the khavis.
 #
 # This file is loaded by scripts/start.sh to drive health-check prints
 # and to give operators a single place to override per-pool defaults

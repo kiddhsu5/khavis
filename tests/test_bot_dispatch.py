@@ -15,7 +15,7 @@ class TestSynthesize:
     def test_picks_longest_above_threshold(self):
         r1 = BackendResult(backend="claude", ok=True, text="a" * 30, model="m")
         r2 = BackendResult(backend="codex", ok=True, text="b" * 25, model="m")
-        r3 = BackendResult(backend="llm-router", ok=True, text="c" * 20, model="m")
+        r3 = BackendResult(backend="khavis", ok=True, text="c" * 20, model="m")
         text, source = synthesize([r1, r2, r3])
         assert text == "a" * 30
         assert source == "claude"

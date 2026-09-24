@@ -1,4 +1,4 @@
-# Commit Message Guide — llm-router
+# Commit Message Guide — K.H.A.V.I.S.
 
 This document is the project's source of truth for how to write Git commit
 messages. It is referenced from `CONTRIBUTING.md` and reviewed in PRs.
@@ -17,9 +17,9 @@ it is the only place where we get to describe the entire project before users
 arrive. Use the message below verbatim when you tag `v0.1.0`.
 
 ```
-feat: initial release v0.1.0 - pluggable LLM router with multi-agent collaboration
+feat: initial release v0.1.0 - pluggable K.H.A.V.I.S. with multi-agent collaboration
 
-This is the first public release of llm-router, a self-hosted, pluggable
+This is the first public release of khavis, a self-hosted, pluggable
 router that unifies twelve (and counting) LLM providers behind a single
 OpenAI-compatible HTTP API. The release ships the full vertical slice:
 plugin discovery, capability-based smart routing, hot-reloadable YAML
@@ -391,7 +391,7 @@ Refs: #<issue>
 ci(docker): add arm64 build to multi-arch matrix
 
 Single-arch images broke Apple-silicon and Graviton users running
-llm-router on the same hardware as their dev machine. Adding
+khavis on the same hardware as their dev machine. Adding
 linux/arm64 to the docker.yml buildx step doubles build time
 (~6m -> ~12m) but unblocks the most common homelab topology.
 

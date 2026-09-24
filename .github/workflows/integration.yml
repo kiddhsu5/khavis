@@ -1,4 +1,4 @@
-name: llm-router-integration
+name: khavis-integration
 
 on:
   workflow_dispatch:
@@ -17,7 +17,7 @@ permissions:
   pull-requests: write
 
 concurrency:
-  group: llm-router-integration-${{ github.ref }}
+  group: khavis-integration-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -48,7 +48,7 @@ jobs:
         id: integ
         continue-on-error: true
         env:
-          LLM_ROUTER_PROVIDERS: ${{ github.event.inputs.providers || 'openai' }}
+          KHAVIS_PROVIDERS: ${{ github.event.inputs.providers || 'openai' }}
           GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
@@ -61,7 +61,7 @@ jobs:
         run: |
           if [ -f scripts/integration_test.py ]; then
             python scripts/integration_test.py \
-              --providers "$LLM_ROUTER_PROVIDERS" \
+              --providers "$KHAVIS_PROVIDERS" \
               --output junit-xml=/tmp/integration.junit.xml \
               --output json=/tmp/integration.json
           else
@@ -86,7 +86,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: llm-router-integration-${{ github.run_id }}
+          name: khavis-integration-${{ github.run_id }}
           path: |
             /tmp/integration.junit.xml
             /tmp/integration.json
