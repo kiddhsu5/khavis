@@ -474,6 +474,22 @@ class TestHealthCache:
         with patch.object(status_server, "_kick_refresh", side_effect=RuntimeError("boom")):
             status_server.warm_cache()  # must not raise
 
+    def test_cold_path_does_not_import_provider_sdks(self):
+        # Regression: _placeholder_rows used to call _load_plugins(), which
+        # imports every provider SDK (~12s cold, mostly google.generativeai).
+        # That put the cost right back on the request the cold path exists
+        # to protect — observed as req#1 timing out, req#2 at 4s and req#3
+        # at 10ms once the memo finally landed.
+        def explode():
+            raise AssertionError("_load_plugins() must not run on the request path")
+
+        with patch.object(status_server, "_load_plugins", side_effect=explode):
+            with patch.object(status_server, "_probe_all_pools", return_value=[]):
+                t0 = time.monotonic()
+                rows = pool_health()
+                assert time.monotonic() - t0 < 0.2
+                assert rows and all(r.get("ok") is None for r in rows)
+
     def test_cache_state_reports_warming(self):
         state = status_server.cache_state()
         assert state["age_s"] is None

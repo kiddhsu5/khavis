@@ -118,17 +118,22 @@ def _placeholder_rows() -> list[dict[str, object]]:
     None keeps the page honest: the pools are not down, we simply have not
     looked yet. ``False`` would light the summary red and make an operator
     chase a phantom outage.
+
+    Reads ``_PLUG_CACHE`` and never calls ``_load_plugins()``. Discovery is
+    cheap but *importing* it is not: it pulls in every provider SDK and
+    takes ~12s cold, mostly ``google.generativeai``. Calling it here would
+    put that cost straight back on the request we just worked so hard not
+    to block.
     """
-    try:
-        plugs = _load_plugins()
-    except Exception as exc:  # noqa: BLE001 - placeholder must not raise
+    plugs = _PLUG_CACHE
+    if not plugs:
         return [{
-            "name": "registry",
+            "name": "…",
             "provider_id": "",
             "models": [],
             "capabilities": [],
             "ok": None,
-            "detail": _redact(f"warming up ({type(exc).__name__})"),
+            "detail": WARMING_DETAIL,
         }]
     return [
         {
@@ -166,11 +171,26 @@ def _kick_refresh() -> None:
 
 
 def warm_cache() -> None:
-    """Fill the cache before anyone asks. Failures must not stop startup."""
-    try:
-        _kick_refresh()
-    except Exception as exc:  # noqa: BLE001 - warm-up is best-effort
-        print(f"warm-up failed: {exc!r}", file=sys.stderr, flush=True)
+    """Fill the plugin and health caches before anyone asks.
+
+    Two slow steps, both off the request path: importing every provider
+    SDK (~12s) and then sweeping their health (~20s if an endpoint is
+    dead). Failures must not stop the listeners from binding — this runs
+    after bind precisely so a warm-up problem can only cost us fresh data,
+    not the page.
+    """
+
+    def run() -> None:
+        try:
+            _load_plugins()
+        except Exception as exc:  # noqa: BLE001 - warm-up is best-effort
+            print(f"warm-up: plugin load failed: {exc!r}", file=sys.stderr, flush=True)
+        try:
+            _kick_refresh()
+        except Exception as exc:  # noqa: BLE001 - warm-up is best-effort
+            print(f"warm-up: sweep failed: {exc!r}", file=sys.stderr, flush=True)
+
+    threading.Thread(target=run, daemon=True, name="khavis-warm").start()
 
 
 def _load_plugins() -> list:
