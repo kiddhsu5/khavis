@@ -12,9 +12,19 @@
 pools:
   - name: "MiniMax-M3"
     provider_id: "MiniMax"
-    endpoint: "https://api.MiniMax.chat/v1"
+    # Token-plan endpoint (OpenAI-compatible). The same coding-plan key
+    # (MINIMAX_API_KEY / sk-cp-…) drives Codex on the dev machines.
+    endpoint: "https://api.minimax.cn/v1"
     model: "MiniMax-M3"
-    env_key: "MiniMax_API_KEY"
+    env_key: "MINIMAX_API_KEY"
+
+  - name: "MiMo-Code"
+    provider_id: "mimo"
+    # Anthropic Messages API on the MiMo token plan — the same relay
+    # Claude Code uses via ANTHROPIC_BASE_URL. No OpenAI-compatible surface.
+    endpoint: "https://token-plan-cn.xiaomimimo.com/anthropic"
+    model: "mimo-v2.6-pro"
+    env_key: "MIMO_AUTH_TOKEN"
 
   - name: "GLM-5.3"
     provider_id: "glm"

@@ -865,3 +865,73 @@ class TestProviderPluginBase:
         r = repr(p)
         assert "MiniMaxPlugin" in r
         assert "MiniMax-M3" in r
+
+
+# ---------------------------------------------------------------------------
+# MiMo-Code
+# ---------------------------------------------------------------------------
+class TestMimoCodePlugin:
+    def test_defaults(self, monkeypatch):
+        monkeypatch.delenv("MIMO_AUTH_TOKEN", raising=False)
+        monkeypatch.delenv("ANTHROPIC_AUTH_TOKEN", raising=False)
+        from providers.mimo import MimoCodePlugin
+
+        p = MimoCodePlugin()
+        assert p.name == "MiMo-Code"
+        assert p.provider_id == "mimo"
+        assert p.api_key is None
+        assert p.model == "mimo-v2.6-pro"
+        assert p.default_endpoint == "https://token-plan-cn.xiaomimimo.com/anthropic"
+
+    def test_env_key_prefers_mimo_token(self, monkeypatch):
+        monkeypatch.setenv("MIMO_AUTH_TOKEN", "tp-primary")
+        monkeypatch.setenv("ANTHROPIC_AUTH_TOKEN", "tp-fallback")
+        from providers.mimo import MimoCodePlugin
+
+        assert MimoCodePlugin().api_key == "tp-primary"
+
+    def test_env_key_falls_back_to_anthropic_auth_token(self, monkeypatch):
+        monkeypatch.delenv("MIMO_AUTH_TOKEN", raising=False)
+        monkeypatch.setenv("ANTHROPIC_AUTH_TOKEN", "tp-fallback")
+        from providers.mimo import MimoCodePlugin
+
+        assert MimoCodePlugin().api_key == "tp-fallback"
+
+    def test_chat_extracts_text_and_skips_thinking(self):
+        from providers.mimo import MimoCodePlugin
+
+        p = MimoCodePlugin(api_key="x", model="mimo-v2.6-pro")
+        fake = MagicMock()
+        fake.raise_for_status.return_value = None
+        fake.json.return_value = {
+            "model": "mimo-v2.6-pro",
+            "content": [
+                {"type": "thinking", "thinking": "internal"},
+                {"type": "text", "text": "pong"},
+            ],
+            "usage": {"input_tokens": 10, "output_tokens": 5},
+        }
+        with patch("providers.mimo.requests.post", return_value=fake) as post:
+            out = p.chat(PING, max_tokens=16)
+        assert out["choices"][0]["message"]["content"] == "pong"
+        assert out["usage"]["prompt_tokens"] == 10
+        assert out["usage"]["completion_tokens"] == 5
+        assert post.call_args.kwargs["json"]["model"] == "mimo-v2.6-pro"
+        assert post.call_args.kwargs["headers"]["Authorization"] == "Bearer x"
+
+    def test_chat_missing_token_raises(self):
+        from providers.mimo import MimoCodePlugin
+
+        p = MimoCodePlugin(api_key=None)
+        with pytest.raises(RuntimeError, match="MIMO_AUTH_TOKEN"):
+            p.chat(PING)
+
+    def test_health_and_quota_shapes(self):
+        from providers.mimo import MimoCodePlugin
+
+        assert MimoCodePlugin(api_key="x").health_check()["ok"] is True
+        assert MimoCodePlugin(api_key=None, endpoint="").health_check()["ok"] is False
+        q = MimoCodePlugin(api_key="x").check_quota()
+        assert q["provider"] == "mimo"
+        assert q["remaining"] == "unknown"
+        assert "mimo-v2.6-pro" in MimoCodePlugin(api_key="x").list_models()

@@ -47,7 +47,7 @@ class MiniMaxPlugin(ProviderPlugin):
         super().__init__(
             name="MiniMax-M3",
             endpoint=endpoint or DEFAULT_ENDPOINT,
-            api_key=api_key or os.getenv(ENV_KEY),
+            api_key=api_key or os.getenv(ENV_KEY) or os.getenv("MiniMax_API_KEY"),
             model=model or DEFAULT_MODEL,
             capabilities=capabilities or ["中文", "英文", "推理", "工具調用"],
             metadata=metadata or {"region": "global", "tier": "standard"},
