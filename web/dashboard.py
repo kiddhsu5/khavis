@@ -36,6 +36,13 @@ def api_payload(
     wall: list[dict[str, str]] | None = None,
 ) -> dict[str, Any]:
     """JSON shape for ``/api/dashboard``. Secrets stay redacted upstream."""
+    budget: dict[str, Any] | None = None
+    try:
+        from core.budget import get_guard  # noqa: PLC0415
+
+        budget = get_guard().status()
+    except Exception:  # noqa: BLE001
+        budget = None
     return {
         "generated_at": time.time(),
         "pools": pools,
@@ -43,6 +50,7 @@ def api_payload(
         "cache": cache or {"age_s": None, "warming": False},
         "history": history or [],
         "wall": wall if wall is not None else WALL_ENTRIES,
+        "budget": budget,
     }
 
 
@@ -100,6 +108,14 @@ def render_dashboard_html(
     bot_ok = bool(bot.get("ok"))
     history = history or []
     wall = wall if wall is not None else WALL_ENTRIES
+    try:
+        from core.budget import get_guard  # noqa: PLC0415
+
+        _bpol = get_guard().policy
+        budget_req = int(_bpol.max_tokens_per_request)
+        budget_cost = float(_bpol.max_cost_per_session_usd)
+    except Exception:  # noqa: BLE001
+        budget_req, budget_cost = 0, 0.0
 
     def pool_row(r: dict[str, Any]) -> str:
         mark = "🟢" if r.get("ok") is True else ("🟡" if r.get("ok") is None else "🔴")
@@ -168,6 +184,8 @@ def render_dashboard_html(
     <div class="card"><div class="n">{warming_n}</div><div class="l">warming up</div></div>
     <div class="card"><div class="n">{'OK' if bot_ok else 'DOWN'}</div><div class="l">telegram bot</div></div>
     <div class="card"><div class="n">{len(history)}</div><div class="l">recent events</div></div>
+    <div class="card"><div class="n">{budget_req // 1000}k</div><div class="l">max tokens / request</div></div>
+    <div class="card"><div class="n">${budget_cost:.2f}</div><div class="l">session cost cap</div></div>
   </div>
 
   <p class="summary">

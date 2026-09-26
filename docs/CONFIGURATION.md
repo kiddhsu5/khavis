@@ -294,3 +294,21 @@ Run it after any config change:
 ```bash
 khavis doctor
 ```
+
+
+## Token / cost budgets (`config/budgets.yaml`)
+
+v0.2.0 adds soft caps enforced at the router edge:
+
+| Key | Meaning |
+| --- | --- |
+| `max_tokens_per_request` | pre-flight estimate cap for one `chat()` |
+| `max_tokens_per_session` | sliding-window cap per `session_id` |
+| `max_cost_per_session_usd` | approximate USD cap (uses `pricing_usd_per_1k`) |
+| `window_s` | session window length |
+| `filter_router` | when true, `CapabilityRouter.select()` skips over-budget pools |
+
+Env overrides: `KHAVIS_BUDGET_MAX_TOKENS_REQUEST`, `KHAVIS_BUDGET_MAX_TOKENS_SESSION`,
+`KHAVIS_BUDGET_MAX_COST_SESSION_USD`, `KHAVIS_BUDGET_WINDOW_S`.
+
+Bot operators can type `/budget` to see live usage. Dashboard JSON includes a `budget` block.

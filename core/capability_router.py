@@ -90,13 +90,27 @@ class CapabilityRouter:
         *,
         strategy: str = "weighted",
         rng: random.Random | None = None,
+        session_id: str | None = None,
     ) -> ProviderPlugin | None:
         """Pick a single plugin for the given capability.
 
         ``strategy`` can be ``"weighted"`` (default), ``"round_robin"`` or
-        ``"random"``.
+        ``"random"``. When ``session_id`` is given and the budget policy
+        has ``filter_router: true``, pools that would blow the session
+        cost cap are skipped.
         """
         candidates = self.candidates(capability)
+        if session_id:
+            from .budget import get_guard  # noqa: PLC0415 - avoid import cycle at module load
+
+            guard = get_guard()
+            if guard.policy.filter_router:
+                kept = [
+                    p
+                    for p in candidates
+                    if guard.allow(session_id=session_id, pool=p.name, prompt_chars=0)
+                ]
+                candidates = kept or candidates
         if not candidates:
             return None
         if strategy == "random":

@@ -385,6 +385,7 @@ Register it in `pools.yaml`, add capability tags, submit a PR. Full walkthrough 
 - [ ] **v0.3.0** — Built-in RAG connector (Chroma, Qdrant, pgvector).
 - [ ] **v0.4.0** — OpenAI-compatible drop-in server mode (replaces `litellm` for many users).
 - [ ] **v0.5.0** — First-class fine-tuned model registry with hot-swap.
+- [x] **v0.2.0** — Token-aware cost budgets (per request / per session) via `core/budget.py` + `config/budgets.yaml`.
 - [x] **v0.6.0 (partial)** — Web dashboard for pool health + dispatch history (`/dashboard`). Quota charts still open.
 - [ ] **v1.0.0** — Stable plugin API, SemVer guarantees, LTS branch.
 

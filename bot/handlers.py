@@ -269,6 +269,31 @@ async def handle_history(msg: IncomingMessage, deps: HandlerDeps) -> None:
     await api.send_message(msg.chat_id, "\n".join(lines), parse_mode=None, reply_to=msg.message_id)
 
 
+
+async def handle_budget(msg: IncomingMessage, deps: HandlerDeps) -> None:
+    from core.budget import get_guard
+
+    from .telegram_api import TelegramAPI
+
+    api: TelegramAPI = deps.telegram  # type: ignore[assignment]
+    if not is_allowed(msg.chat_id, deps.allowlist):
+        return
+    st = get_guard().status()
+    pol = st["policy"]
+    ses = st["sessions"].get(f"chat-{msg.chat_id}") or {"tokens": 0, "cost_usd": 0, "calls": 0}
+    lines = [
+        "*Budget policy*",
+        f"request cap: {pol['max_tokens_per_request']} tok",
+        f"session cap: {pol['max_tokens_per_session']} tok",
+        f"cost cap: ${pol['max_cost_per_session_usd']}",
+        f"window: {int(pol['window_s'])}s",
+        "",
+        "*This chat*",
+        f"tokens: {int(ses['tokens'])} · cost: ${ses['cost_usd']:.4f} · calls: {int(ses['calls'])}",
+    ]
+    await api.send_message(msg.chat_id, "\n".join(lines), parse_mode=None, reply_to=msg.message_id)
+
+
 # Convenience registry used by main.py
 COMMANDS: dict[str, CommandHandler] = {
     "/start": handle_start,
@@ -277,6 +302,7 @@ COMMANDS: dict[str, CommandHandler] = {
     "/pools": handle_pools,
     "/phase": handle_phase,
     "/history": handle_history,
+    "/budget": handle_budget,
 }
 
 

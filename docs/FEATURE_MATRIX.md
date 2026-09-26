@@ -80,6 +80,7 @@
 | `/healthz` 端點 | ✅ | ⚠️ | ✅ | ✅ |
 | 公開 health badge | ✅（`/healthz` + `/dashboard`） | ⚠️ | ✅ | ✅ |
 | Prometheus exporter | 🔜 | ⚠️（Enterprise） | ✅ | ✅ |
+| token-aware 成本預算（per request / session） | ✅（`core/budget.py`） | ❌ | ⚠️ | ⚠️ |
 | 自我 benchmark（latency / p95） | ✅（`tests/benchmarks/`） | ⚠️ | ✅（公開 20μs / 5k req/s） | ⚠️ |
 
 > K.H.A.V.I.S. 的 benchmark 數字自家已能跑（見 `tests/benchmarks/`），

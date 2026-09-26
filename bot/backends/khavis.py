@@ -37,6 +37,16 @@ class KhavisBackend(Backend):
             return HealthResult(False, repr(exc))
 
     async def run(self, envelope: DispatchEnvelope) -> BackendResult:
+        from core.budget import get_guard  # noqa: PLC0415
+
+        guard = get_guard()
+        session_id = f"chat-{envelope.chat_id}"
+        if not guard.allow(session_id=session_id, pool="khavis", prompt_chars=len(envelope.prompt or "")):
+            return BackendResult(
+                backend="khavis",
+                ok=False,
+                error=f"budget exceeded: {guard.reason()}",
+            )
         try:
             from agents import run_team  # noqa: PLC0415 - lazy
 
@@ -51,6 +61,18 @@ class KhavisBackend(Backend):
                 ),
             )
             latency_ms = int((time.perf_counter() - t0) * 1000)
+            try:
+                # attribution records carry per-node token estimates when available
+                attr = state.get("attribution") if isinstance(state, dict) else {}
+                records = (attr or {}).get("records") or []
+                tok = sum(int(r.get("tokens") or 0) for r in records if isinstance(r, dict))
+                guard.record(
+                    session_id=session_id,
+                    pool="khavis",
+                    usage={"prompt_tokens": tok, "completion_tokens": 0},
+                )
+            except Exception:  # noqa: BLE001
+                pass
         except Exception as exc:  # noqa: BLE001
             return BackendResult(
                 backend="khavis",
