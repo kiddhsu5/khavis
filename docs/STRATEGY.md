@@ -99,8 +99,8 @@
 | `pytest benchmarks/` | `pytest-benchmark` 已列為 dev dep，但沒有 `benchmarks/` 目錄 | 新建 `tests/benchmarks/`，至少跑 `selection_ms` 與 `chat_roundtrip_ms` |
 | `blog/ZERO_QUOTA_INTERRUPTION.md` | 缺 | 新建 |
 | Wireguard / Tailscale 案例 | 缺 | 用 `setup_ollama.sh` 當素材寫一篇 `docs/EDGE_FAILOVER.md` |
-| web dashboard for bot | 缺 | `bot/` 目前只有 Telegram 出入口 |
-| 「個人開發者 wall」 | 缺 | README 加一段「In production at」/ stargazers 列表 |
+| web dashboard for bot | ✅ 2026-09-26 | `web/dashboard.py` + `/dashboard` `/api/dashboard` |
+| 「個人開發者 wall」 | ✅ 2026-09-26 | README + `/wall` |
 
 ---
 
@@ -114,3 +114,6 @@
 | `tests/benchmarks/` | 2026-09-24 | `tests/benchmarks/test_benchmarks.py`（14 tests）+ `scripts/run_benchmarks.py` |
 | `docs/BENCHMARKS.md`（自我披露數字） | 2026-09-24 | `docs/BENCHMARKS.md`（selection p95 = 0.02 ms） |
 | Wireguard / Tailscale 案例 | 2026-09-24 | `docs/EDGE_FAILOVER.md`（191 行） |
+| web dashboard + 個人開發者 wall | 2026-09-26 | `web/dashboard.py`, README wall, `/dashboard` `/wall` |
+| bot Phase 4 `/phase` | 2026-09-26 | `bot/phases.py`, `bot/history.py` |
+| SECURITY.md PGP key | 2026-09-26 | `.github/SECURITY.md`, `deploy/pgp.txt` → khavis.kiddhsu.taipei/pgp.txt |
