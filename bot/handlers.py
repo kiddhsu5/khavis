@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import contextlib
 import shlex
 from collections.abc import Callable, Coroutine, Iterable
 from typing import Any
@@ -202,12 +203,80 @@ async def handle_run(msg: IncomingMessage, deps: HandlerDeps) -> DispatchEnvelop
     )
 
 
+async def handle_phase(msg: IncomingMessage, deps: HandlerDeps) -> None:
+    """Phase 4 staged run: ``/phase <name> <prompt>``."""
+    from . import history as bot_history
+    from .phases import run_phase
+    from .telegram_api import TelegramAPI
+
+    api: TelegramAPI = deps.telegram  # type: ignore[assignment]
+    if not is_allowed(msg.chat_id, deps.allowlist):
+        return
+    raw = (msg.text or "").strip()
+    parts = raw.split(maxsplit=2)
+    if len(parts) < 3:
+        await api.send_message(
+            msg.chat_id,
+            "Usage: /phase <plan|code|debate|review|verify|learn|pipeline> <prompt>",
+            parse_mode=None,
+            reply_to=msg.message_id,
+        )
+        return
+    name = parts[1].lower()
+    prompt = parts[2]
+
+    async def on_progress(text: str) -> None:
+        with contextlib.suppress(Exception):
+            await api.send_message(msg.chat_id, text, parse_mode=None)
+
+    result = await run_phase(name, prompt, on_progress=on_progress)
+    bot_history.record(
+        {
+            "kind": "phase",
+            "phase": result.phase,
+            "ok": result.ok,
+            "latency_ms": result.latency_ms,
+            "prompt": prompt[:200],
+            "error": result.error,
+            "chat_id": msg.chat_id,
+        }
+    )
+    body = (
+        f"{'✅' if result.ok else '❌'} phase `{result.phase}`\n"
+        f"{result.latency_ms} ms\n\n"
+        f"{(result.output or result.error or '(no output)')[:3500]}"
+    )
+    await api.send_message(msg.chat_id, body, parse_mode=None, reply_to=msg.message_id)
+
+
+async def handle_history(msg: IncomingMessage, deps: HandlerDeps) -> None:
+    from . import history as bot_history
+    from .telegram_api import TelegramAPI
+
+    api: TelegramAPI = deps.telegram  # type: ignore[assignment]
+    if not is_allowed(msg.chat_id, deps.allowlist):
+        return
+    events = bot_history.tail(15)
+    if not events:
+        await api.send_message(msg.chat_id, "尚無派工紀錄", parse_mode=None, reply_to=msg.message_id)
+        return
+    lines = ["*Recent dispatches*"]
+    for e in events:
+        mark = "✅" if e.get("ok") else ("⏳" if e.get("ok") is None else "❌")
+        kind = e.get("kind") or e.get("backend") or e.get("phase") or "-"
+        prompt = str(e.get("prompt") or "")[:60]
+        lines.append(f"{mark} `{kind}` {prompt}")
+    await api.send_message(msg.chat_id, "\n".join(lines), parse_mode=None, reply_to=msg.message_id)
+
+
 # Convenience registry used by main.py
 COMMANDS: dict[str, CommandHandler] = {
     "/start": handle_start,
     "/help": handle_help,
     "/status": handle_status,
     "/pools": handle_pools,
+    "/phase": handle_phase,
+    "/history": handle_history,
 }
 
 

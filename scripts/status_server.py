@@ -2,8 +2,10 @@
 """Public status page for ``khavis.kiddhsu.taipei``.
 
 A tiny stdlib-only HTTP server that renders live pool health. Serves
-``/`` (HTML) and ``/healthz`` (JSON). Nothing else — no auth, no write
-paths, no admin surface. It is a billboard, not a control panel.
+``/`` (HTML), ``/dashboard`` (operator view), ``/wall`` (personal-dev
+wall), ``/pgp.txt`` (security contact key), ``/api/dashboard`` and
+``/healthz`` (JSON). No auth, no write paths — a billboard, not a
+control panel.
 
 Run with the project venv so ``core.registry`` imports resolve::
 
@@ -41,6 +43,20 @@ if str(PROJECT_ROOT) not in sys.path:
 
 BRAND = "#0EA5E9"  # sky-500 — the project's single accent colour
 GENERATED_AT_FORMAT = "%Y-%m-%d %H:%M:%S UTC"
+
+
+def _pgp_bytes() -> bytes:
+    """Serve ``deploy/pgp.txt`` (security contact public key)."""
+    candidates = [
+        Path(__file__).resolve().parent.parent / "deploy" / "pgp.txt",
+        Path("/root/khavis-bot/deploy/pgp.txt"),
+    ]
+    for p in candidates:
+        try:
+            return p.read_bytes()
+        except OSError:
+            continue
+    return b"# PGP key not installed\n"
 
 # This page is public. health_check() reports ``key_present=`` and raw
 # exception text, and exceptions can embed request headers — so scrub
@@ -383,13 +399,17 @@ class Handler(BaseHTTPRequestHandler):
 
     def do_GET(self) -> None:  # noqa: N802 - http.server API
         path = self.path.split("?", 1)[0].rstrip("/") or "/"
-        if path not in ("/", "/healthz"):
+        if path == "/pgp.txt":
+            self._send(200, _pgp_bytes(), "text/plain; charset=utf-8")
+            return
+        allowed = ("/", "/healthz", "/dashboard", "/wall", "/api/dashboard")
+        if path not in allowed:
             self._send(404, b'{"error":"not found"}', "application/json")
             return
         rows = pool_health()
         bot = bot_health()
+        cache = cache_state()
         if path == "/healthz":
-            cache = cache_state()
             payload = {
                 # None rows are "not looked at yet", not "down" — do not
                 # fold them into ok, or a warm-up looks like an outage.
@@ -401,7 +421,34 @@ class Handler(BaseHTTPRequestHandler):
             }
             self._send(200, json.dumps(payload, ensure_ascii=False).encode(), "application/json; charset=utf-8")
             return
-        self._send(200, render_html(rows, bot, cache_state()).encode(), "text/html; charset=utf-8")
+        if path == "/api/dashboard":
+            from bot import history as bot_history  # noqa: PLC0415
+            from web.dashboard import api_payload  # noqa: PLC0415
+
+            payload = api_payload(
+                pools=rows,
+                bot=bot,
+                cache=cache,
+                history=bot_history.tail(50),
+            )
+            self._send(200, json.dumps(payload, ensure_ascii=False).encode(), "application/json; charset=utf-8")
+            return
+        if path in ("/dashboard", "/wall"):
+            from bot import history as bot_history  # noqa: PLC0415
+            from web.dashboard import render_dashboard_html, render_wall_html  # noqa: PLC0415
+
+            if path == "/wall":
+                body = render_wall_html()
+            else:
+                body = render_dashboard_html(
+                    pools=rows,
+                    bot=bot,
+                    cache=cache,
+                    history=bot_history.tail(50),
+                )
+            self._send(200, body.encode(), "text/html; charset=utf-8")
+            return
+        self._send(200, render_html(rows, bot, cache).encode(), "text/html; charset=utf-8")
 
     def log_message(self, fmt: str, *args: object) -> None:  # noqa: A003
         sys.stderr.write("%s - %s\n" % (self.address_string(), fmt % args))

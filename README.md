@@ -27,6 +27,19 @@ Full numbers and methodology: [`docs/BENCHMARKS.md`](docs/BENCHMARKS.md). CI gat
 
 ---
 
+
+### 個人開發者 wall
+
+In production at personal / homelab setups — not enterprise logos. PRs welcome to join.
+
+| Who | Setup |
+| --- | --- |
+| [@kiddhsu5](https://github.com/kiddhsu5) | homelab · Mac + Surface + Aliyun ECS · MiniMax / GLM / MiMo / Ollama |
+
+Live strip: [`/wall`](https://khavis.kiddhsu.taipei/wall) · operator dashboard: [`/dashboard`](https://khavis.kiddhsu.taipei/dashboard)
+
+---
+
 ## Why K.H.A.V.I.S.?
 
 If you have ever paid for multiple LLM subscriptions, you already know the pain:

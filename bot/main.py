@@ -205,6 +205,21 @@ def _build_handler(router: DispatchRouter, deps: HandlerDeps):
                     )
 
             report = await router.dispatch_streaming(envelope, _on_complete)
+            try:
+                from . import history as bot_history
+
+                bot_history.record(
+                    {
+                        "kind": "dispatch",
+                        "ok": any(r.ok for r in report.results),
+                        "prompt": envelope.prompt[:200],
+                        "chat_id": envelope.chat_id,
+                        "backends": [r.backend for r in report.results],
+                        "consensus_source": report.consensus_source,
+                    }
+                )
+            except Exception:  # noqa: BLE001
+                pass
 
             # If at least one backend succeeded, run the judge to pick
             # the best answer. The judge runs locally on Ollama-Mac (or

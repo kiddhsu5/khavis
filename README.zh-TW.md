@@ -27,6 +27,19 @@
 
 ---
 
+
+### 個人開發者 wall
+
+In production at — 個人 / homelab 實際部署，不是企業 logo 牆。歡迎 PR 加入。
+
+| 使用者 | 環境 |
+| --- | --- |
+| [@kiddhsu5](https://github.com/kiddhsu5) | homelab · Mac + Surface + Aliyun ECS · MiniMax / GLM / MiMo / Ollama |
+
+即時頁：[`/wall`](https://khavis.kiddhsu.taipei/wall) · 維運儀表板：[`/dashboard`](https://khavis.kiddhsu.taipei/dashboard)
+
+---
+
 ## 為什麼選 K.H.A.V.I.S.?
 
 如果你曾經訂閱過多個 LLM 服務,你一定經歷過這些痛點:
