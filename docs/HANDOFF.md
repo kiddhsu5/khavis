@@ -36,6 +36,9 @@
 | Telegram 派工 bot `bot/`（三方 fan-out：claude / codex / K.H.A.V.I.S.） | ✅ 上線，polling 模式 |
 | 多 agent 流水線 `agents/`（planner→coder→debate→critic→verify→learn） | ✅ 完成 |
 | 公開狀態頁 `scripts/status_server.py` | ✅ 上線 `khavis.kiddhsu.taipei` |
+| Web dashboard `/dashboard` `/wall` `/api/dashboard` | ✅ 2026-09-26 |
+| bot Phase 4 `/phase` + `/history` | ✅ 2026-09-26 |
+| security@ Email Routing + GPG `pgp.txt` | ✅ 2026-09-26 |
 | Ollama 走 Tailscale（Mac / Surface 兩個 pool） | ✅ Mac 綠燈；Surface 待機器端處理 |
 | 測試 | ✅ 290 tests green、0 ruff、0 mypy |
 

@@ -72,6 +72,8 @@ curl "https://api.telegram.org/bot${BOT_TOKEN}/setWebhook?url=${PUBLIC_URL}/webh
 | `/run <prompt>` | Fan out to claude, codex, K.H.A.V.I.S. |
 | `/run --only codex,claude <prompt>` | Subset |
 | `/run --capability code <prompt>` | Hint for the gateway's `CapabilityRouter` |
+| `/phase <plan\|code\|review\|verify\|pipeline> <prompt>` | Phase 4 staged run (multi-agent pipeline) |
+| `/history` | Recent dispatches / phase runs |
 
 ## Backend behavior
 

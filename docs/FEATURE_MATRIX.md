@@ -67,7 +67,7 @@
 | Telegram bot | ✅ | ❌ | ❌ | ❌ | ❌ |
 | 多 backend 平行派工 + 聚合 | ✅（Claude Code / Codex / 自家 router） | ❌ | ❌ | ❌ | ❌ |
 | Webhook + long polling 兩種模式 | ✅ | ❌ | ❌ | ❌ | ❌ |
-| Web dashboard | 🔜 | ❌ | ❌ | ⚠️（Enterprise） | ✅ |
+| Web dashboard | ✅（`/dashboard`） | ❌ | ❌ | ⚠️（Enterprise） | ✅ |
 
 > 4 家對手都沒有官方 Telegram bot。`bot/` 模組（見 `docs/TELEGRAM_BOT.md`）
 > 是真護城河。
@@ -78,7 +78,7 @@
 | --- | --- | --- | --- | --- |
 | 每次呼叫的 cost / latency / capability audit log | ✅ | ✅ | ✅ | ✅ |
 | `/healthz` 端點 | ✅ | ⚠️ | ✅ | ✅ |
-| 公開 health badge | 🔜 | ⚠️ | ✅ | ✅ |
+| 公開 health badge | ✅（`/healthz` + `/dashboard`） | ⚠️ | ✅ | ✅ |
 | Prometheus exporter | 🔜 | ⚠️（Enterprise） | ✅ | ✅ |
 | 自我 benchmark（latency / p95） | ✅（`tests/benchmarks/`） | ⚠️ | ✅（公開 20μs / 5k req/s） | ⚠️ |
 
@@ -98,7 +98,7 @@
 | 用量計價 / 月費 | 不做。Apache 2.0 永久免費 |
 | 託管 gateway | 不做。商業模式拒絕 SaaS |
 | AutoGen 等級的完整 agent framework | 不做。互通優先（見 §4） |
-| Web UI | 🔜（見 §5，列入中期 roadmap） |
+| Web UI | ✅ 初版（pool health + dispatch history + wall） |
 
 ## 8. 怎麼讀這份表
 
